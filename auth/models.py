@@ -84,6 +84,11 @@ class ExtendedOfficerPositionManager(models.Manager):
                 result_set |= func(meta, *args, **kwargs)
         
         return result_set
+        
+    def get_positions_for_terms(self, termlist):
+        def func(meta):
+            return set([meta.officer_position])
+        return self.get_results_for_terms(termlist, func)
                 
     def get_users_for_terms(self, termlist, position = None):
         def func(meta, position):
@@ -91,14 +96,6 @@ class ExtendedOfficerPositionManager(models.Manager):
                 return set([meta.user])
             return set()
         return self.get_results_for_terms(termlist, func, position)
-        
-    def get_current_users(self, position = None):
-        return self.get_users_for_terms(self.get_current_terms(), position)
-        
-    def get_positions_for_terms(self, termlist):
-        def func(meta):
-            return set([meta.officer_position])
-        return self.get_results_for_terms(termlist, func)
             
     def get_tuples_for_terms(self, termlist, position = None):
         def func(meta, position):
@@ -107,16 +104,33 @@ class ExtendedOfficerPositionManager(models.Manager):
             return set()
         return self.get_results_for_terms(termlist, func, position)
         
-    def get_officer_list_for_terms(self, termlist, position = None):
+    def get_list_for_terms(self, termlist, position = None, sort=True):
         tuples = self.get_tuples_for_terms(termlist, position)
-        officer_list = {}
+        officer_dict = {}
+        officer_list = []
         for tuple in tuples:
             try:
-                assert officer_list[tuple[0]]
+                assert officer_dict[tuple[1]]
             except KeyError:
-                officer_list[tuple[0]] = set()
-            officer_list[tuple[0]].add(tuple[1])
+                officer_dict[tuple[1]] = set()
+            officer_dict[tuple[1]].add(tuple[0])
+        
+        for position in officer_dict:
+            officer_list.append((position, officer_dict[position]))
+        
+        if sort is True:
+            return sorted(officer_list, key=lambda officer: officer[0].order)
+            
         return officer_list
+        
+    def get_current_users(self, *args, **kwargs):
+        return self.get_users_for_terms(self.get_current_terms(), *args, **kwargs)
+        
+    def get_current_tuples(self, *args, **kwargs):
+        return self.get_tuples_for_terms(self.get_current_terms(), *args, **kwargs)
+        
+    def get_current_list(self, *args, **kwargs):
+        return self.get_list_for_terms(self.get_current_terms(), *args, **kwargs)
         
 
 class OfficerPosition(models.Model):
