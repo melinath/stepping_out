@@ -1,0 +1,6 @@
+Stepping Out is a django-based framework designed specifically to handle the problems related to making a swing dancing website. Its features include:
+- A calendar system.
+- A complete workshop system integrated with the calendar.
+- A link page framework.
+- A mail router for making complex lists based on the Django user database.
+- Authentication extensions allowing users to experience the site on a number of levels while keeping track of their data.
