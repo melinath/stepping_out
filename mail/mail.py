@@ -8,6 +8,12 @@ import smtplib
 from django.conf import settings
 
 
+DEBUG_MAIL = True
+"""
+MAIL_LOG_PATH = '' #make sure this is writable by the mail server!
+"""
+
+
 def route_email(input = stdin):
 	"""
 	Steps:
@@ -17,6 +23,12 @@ def route_email(input = stdin):
 		   (but of course only if the sender has permission.)
 	"""
 	msg = parse_email(input)
+	
+	if settings.STEPPING_OUT_MAIL_LOG_PATH and DEBUG_MAIL:
+		fp = open(settings.STEPPING_OUT_MAIL_LOG_PATH, 'a')
+		input.seek(0)
+		fp.write(input.read())
+		fp.write('\n\n\n')
 	
 	route_to_lists(msg)
 	
@@ -31,7 +43,7 @@ def route_to_lists(msg):
 	for mailinglist in mailinglists:
 		bcc_set |= get_user_emails(mailinglist.receivers())
 	
-	msg['bcc'] = ','.join(bcc_set)
+	msg['Bcc'] = ','.join(bcc_set)
 
 def get_addrlist(msg, arg):
 	addrlist = []
