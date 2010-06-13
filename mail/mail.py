@@ -1,11 +1,9 @@
-from django.core.mail import send_mail, get_connection, EmailMessage
 from django.core.mail.utils import DNS_NAME
 from django.db.models import Q
 from django.contrib.auth.models import User
 from models import MailingList
-from sys import stdout, stdin
+from sys import stdin
 import email
-from cStringIO import StringIO
 import smtplib
 from django.conf import settings
 
@@ -33,7 +31,7 @@ def route_to_lists(msg):
 	for mailinglist in mailinglists:
 		bcc_set |= get_user_emails(mailinglist.receivers())
 	
-	msg.add_header('BCC', ','.join(bcc_set))
+	msg['bcc'] = ','.join(bcc_set)
 
 def get_addrlist(msg, arg):
 	addrlist = []
@@ -89,23 +87,3 @@ def forward(msg):
 	connection = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, local_hostname=DNS_NAME.get_fqdn())
 	connection.sendmail(msg['from'], msg['to'], msg.as_string())
 	connection.quit()
-
-
-def get_test_message():
-	fp = StringIO()
-	send_test_message(fp)
-	return fp
-	
-	
-def send_test_message(stream=stdout):
-	connection = get_connection(
-		'django.core.mail.backends.console.EmailBackend',
-		stream=stream
-	)
-	send_mail(
-		'Test email',
-		'This is a test, obviously',
-		'from@test.test',
-		['to@test.test'],
-		connection=connection
-	)
