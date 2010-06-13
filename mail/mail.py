@@ -47,7 +47,11 @@ def parse_email(input):
     for header in msg._headers:
         if header[0] in ['From', 'To', 'CC']:
             continue
-        headers[header[0]] = header[1]
+		
+		# Since we're forwarding emails, we don't want to change any headers,
+		# and there can't be any header injection since that takes place in forms.
+		# Therefore, remove all newlines.
+        headers[header[0]] = header[1].replace('\n', ' ')
     
     def get_addrlist(arg):
         addrlist = []
