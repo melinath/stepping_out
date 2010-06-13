@@ -7,10 +7,10 @@ import email
 import smtplib
 
 DEFAULTS = {
-	subject : 'hello',
-	body : 'This is a test, obviously.',
-	from_email : 'from@test.test',
-	to : ['to@test.test'] 
+	'subject' : 'hello',
+	'body' : 'This is a test, obviously.',
+	'from_email' : 'from@test.test',
+	'to' : ['to@test.test'] 
 }
 
 def django_get_test_message(subject=DEFAULTS['subject'], body=DEFAULTS['body'], from_email=DEFAULTS['from_email'], to=DEFAULTS['to']):
