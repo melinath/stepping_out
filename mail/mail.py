@@ -9,6 +9,7 @@ from cStringIO import StringIO
 import smtplib
 from django.conf import settings
 
+
 def route_email(input = stdin):
 	"""
 	Steps:
@@ -25,7 +26,7 @@ def route_email(input = stdin):
 		
 	
 def route_to_lists(msg):
-	mailinglists = get_mailinglists(msg.to+msg.cc)
+	mailinglists = get_mailinglists(set(get_addrlist(msg, 'to')+get_addrlist(msg, 'cc')))
 	
 	bcc_set = set()
 	
@@ -33,6 +34,18 @@ def route_to_lists(msg):
 		bcc_set |= get_user_emails(mailinglist.receivers())
 	
 	msg.add_header('BCC', ','.join(bcc_set))
+
+def get_addrlist(msg, arg):
+	addrlist = []
+	try:
+		for addr in msg.get_all(arg):
+			if isinstance(addr, list):
+				addrlist += addr
+			elif isinstance(addr, str):
+				addrlist.append(addr)
+	except TypeError:
+		pass
+	return addrlist
 
 def get_mailinglists(addrset):
 	mailinglists = MailingList.objects.filter(address__in=set(addrset))
