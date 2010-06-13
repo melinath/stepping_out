@@ -75,7 +75,8 @@ def parse_email(input):
         to = to_list,
         headers = headers
     )
-    emsg.extra_headers['CC'] = ','.join(cc_list)
+    if cc_list:
+    	emsg.extra_headers['CC'] = ','.join(cc_list)
     emsg.cc = cc_list
     return emsg
 
