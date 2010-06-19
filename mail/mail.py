@@ -30,20 +30,20 @@ def route_email(input = stdin):
 		fp.write(input.read())
 		fp.write('\n\n\n')
 	
-	route_to_lists(msg)
+	recips = calc_recips(msg)
 	
-	forward(msg)
-		
-	
-def route_to_lists(msg):
+	forward(msg, recips)
+
+
+def calc_recips(msg):
 	mailinglists = get_mailinglists(set(get_addrlist(msg, 'to')+get_addrlist(msg, 'cc')))
 	
-	bcc_set = set()
+	recips = set()
 	
 	for mailinglist in mailinglists:
-		bcc_set |= get_user_emails(mailinglist.receivers())
+		recips |= get_user_emails(mailinglist.receivers())
 	
-	msg['Bcc'] = ','.join(bcc_set)
+	return recips
 
 def get_addrlist(msg, arg):
 	addrlist = []
@@ -95,7 +95,7 @@ def users_from_email_list(emaillist):
 	return users, remaining
 
 
-def forward(msg):
+def forward(msg, recips):
 	connection = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, local_hostname=DNS_NAME.get_fqdn())
-	connection.sendmail(msg['from'], msg['to'], msg.as_string())
+	connection.sendmail(msg['from'], recips, msg.as_string())
 	connection.quit()
