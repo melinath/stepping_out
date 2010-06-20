@@ -34,8 +34,8 @@ class UserProfile(models.Model):
 
 class UserEmail(models.Model):
     email = models.EmailField(unique=True)
-    user = models.ForeignKey(User)
-    receives_email = models.BooleanField()
+    user = models.ForeignKey(User, related_name='emails')
+    receives_email = models.BooleanField() # Is this really useful?
 
 class Term(models.Model):
     start = models.DateField()

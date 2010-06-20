@@ -2,17 +2,19 @@ from django.contrib import admin
 from django import forms
 from models import MailingList, UserList
 
+
+COLLAPSE_OPEN_CLASSES = ('collapse', 'open', 'collapse-open',)
+
+
 class MailingListAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'address',
-        'subscribers_may_post',
-        'nonsubscribers_may_post',
+        'who_can_post',
         'self_subscribe_enabled'
     )
     list_filter = list_editable = (
-        'subscribers_may_post',
-        'nonsubscribers_may_post',
+        'who_can_post',
         'self_subscribe_enabled'
     )
     filter_horizontal = (
@@ -28,12 +30,12 @@ class MailingListAdmin(admin.ModelAdmin):
             'fields' : (
                 'name',
                 'address',
+                'site',
             )
         }),
         ('Options', {
             'fields' : (
-                'subscribers_may_post',
-                'nonsubscribers_may_post',
+                'who_can_post',
                 'self_subscribe_enabled'
             )
         }),
@@ -43,7 +45,7 @@ class MailingListAdmin(admin.ModelAdmin):
                 'subscribed_groups',
                 'subscribed_userlists',
             ),
-            'classes': ('collapse-open',)
+            'classes': COLLAPSE_OPEN_CLASSES
         }),
         ('Moderators', {
             'fields' : (
@@ -51,9 +53,11 @@ class MailingListAdmin(admin.ModelAdmin):
                 'moderator_groups',
                 'moderator_userlists'
             ),
-            'classes': ('collapse-open',)
+            'classes': COLLAPSE_OPEN_CLASSES
         })
     )
+    radio_fields = {'who_can_post':admin.VERTICAL}
+    prepopulated_fields = {'address': ('name',)}
 
 """
 class MailingListInline(admin.TabularInline):
