@@ -4,6 +4,7 @@ from email.utils import getaddresses
 import re
 from email.header import Header
 from email.message import Message
+from django.conf import settings
 
 
 ADMINISTRATIVE_KEYWORDS = ['bounce']
@@ -15,7 +16,9 @@ MAXLINELEN = 78
 # This is a list of all addresses owned by sites this script deals with.
 # Ideally, it would be dynamically generated. Low priority, since I deliberately
 # have no other addresses on the site.
-OUR_ADDRESSES = []
+OUR_ADDRESSES = [
+	settings.STEPPING_OUT_LISTADMIN_EMAIL
+]
 
 nonascii = re.compile('[^\s!-~]')
 

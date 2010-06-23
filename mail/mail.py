@@ -113,7 +113,7 @@ def forward(msg, recips):
 	
 	# Really, this should be sent separately to each list so that the bounce is
 	# correct, but for now, just pick a random list.
-	env_sender_list = mgs.data['addresses']['lists'].pop()
+	env_sender_list = msg.data['addresses']['lists'].pop()
 	env_sender = env_sender_list[1].address + '-bounce@' + env_sender_list[1].site.domain
 	
 	while len(recips) > MAX_SMTP_RECIPS:
