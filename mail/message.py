@@ -119,7 +119,6 @@ class SteppingOutMessage(Message):
 		self.parse_to_and_cc()
 	
 	def get_sender_addr(self):
-		print self.keys()
 		if self._metadata['_sender']:
 			return
 		
