@@ -3,11 +3,12 @@ from stepping_out.mail.models import MailingList
 from email.utils import getaddresses
 import re
 from email.header import Header
+from email.message import Message
 
 
 ADMINISTRATIVE_KEYWORDS = ['bounce']
 CONTINUATION_WS = '\t'
-CONTINUATION = ',\n' CONTINUATION_WS
+CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
 MAXLINELEN = 78
 
@@ -35,62 +36,49 @@ class SteppingOutMessage(Message):
 	generate metadata based on its own contents to prepare it for shipping.
 	Important! It doesn't ACT on the metadata. It only creates it.
 	"""
-	def __init__(self):
-		Message.__init__(self)
-		self.data = {
-			'original_sender': '',
-			'recips': set(),
-			'addresses': {
-				'omit': set(), # set of (address, header) tuples that will be put back in place but not sent the message.
-				'lists': set(), # set of (address, list, header) tuples for generating recips
-				'fail': set(), # set of addresses that failed.
-				'rejected': set() # set of (address, list, header) tuples for the lists that the user doesn't have permission to access.
-			},
-			'_addresses': False,
-			'_sender': False
-		}
-		for kw in ADMINISTRATIVE_KEYWORDS:
-			self.data[addresses][kw] = set()
-		
-		self.parse_addrs()
-
-    def __getitem__(self, key):
-        # Ensure that header values are unicodes.
-        value = email.message.Message.__getitem__(self, key)
-        if isinstance(value, str):
-            return unicode(value, 'ascii')
-        return value
-
-    def get(self, name, failobj=None):
-        # Ensure that header values are unicodes.
-        value = email.message.Message.get(self, name, failobj)
-        if isinstance(value, str):
-            return unicode(value, 'ascii')
-        return value
-		
+	_metadata = {
+		'original_sender': '',
+		'recips': set(),
+		'addresses': {
+			'omit': set(),# set of (address, header) tuples that will be put back in place but not sent the message.
+			'lists': set(), # set of (address, list, header) tuples for generating recips
+			'fail': set(), # set of addresses that failed.
+			'rejected': set() # set of (address, list, header) tuples for the lists that the user doesn't have permission to access.
+		},
+		'_addresses': False,
+		'_sender': False
+	}
 	
-	def get_addr_set(self, arg):
-		# return just the email address; drop the realname. Will patch in from
-		# User object later.
-		addresses = getaddresses(msg.get_all(arg, []))
-		return set([address[1] for address in addresses])
+	for kw in ADMINISTRATIVE_KEYWORDS:
+		_metadata['addresses'][kw] = set()
 	
-	def parse_addrs(self):
-		self.get_sender_addr()
-		self.parse_to_and_cc()
+	@property
+	def original_sender(self):
+		return self._metadata['original_sender']
 	
-	def get_sender_addr(self):
-		if self.data['_sender']:
-			return
-		
-		self.data['original_sender'] = self.sender
-		self.data['_sender'] = True
-		
+	@property
+	def failed_delivery(self):
+		return self._metadata['addresses']['fail']
+	
+	@property
+	def deliver_to(self):
+		return self._metadata['addresses']['lists']
+	
+	@property
+	def rejected(self):
+		return self._metadata['addresses']['rejected']
+	
+	@property
+	def recips(self):
+		return self._metadata['recips']
 	
 	@property
 	def sender(self):
 		for h in ('from', 'from_', 'Reply-To', 'Sender'):
-			hval = self[h]
+			if h == 'from_':
+				hval = self.get_unixfrom()
+			else:
+				hval = self[h]
 			if not hval:
 				continue
 			
@@ -101,6 +89,39 @@ class SteppingOutMessage(Message):
 			except IndexError:
 				continue
 		return ''
+
+	def __getitem__(self, key):
+		# Ensure that header values are unicodes.
+		value = Message.__getitem__(self, key)
+		if isinstance(value, str):
+			return unicode(value, 'ascii')
+		return value
+
+	def get(self, name, failobj=None):
+		# Ensure that header values are unicodes.
+		value = Message.get(self, name, failobj)
+		if isinstance(value, str):
+			return unicode(value, 'ascii')
+		return value
+		
+	
+	def get_addr_set(self, arg):
+		# return just the email address; drop the realname. Will patch in from
+		# User object later.
+		addresses = getaddresses(self.get_all(arg, []))
+		return set([address[1] for address in addresses])
+	
+	def parse_addrs(self):
+		self.get_sender_addr()
+		self.parse_to_and_cc()
+	
+	def get_sender_addr(self):
+		print self.keys()
+		if self._metadata['_sender']:
+			return
+		
+		self._metadata['original_sender'] = self.sender
+		self._metadata['_sender'] = True
 	
 	def parse_to_and_cc(self):
 		"""
@@ -114,7 +135,7 @@ class SteppingOutMessage(Message):
 		TODO: What about multiline address lists? Do I need to worry about unwrapping?
 		Mailman comments claim a getaddresses bug...
 		"""
-		if self.data['_addresses']: #Then we were already here.
+		if self._metadata['_addresses']: #Then we were already here.
 			return
 		
 		headers = ['to', 'cc', 'resent-to', 'resent-cc']
@@ -127,7 +148,7 @@ class SteppingOutMessage(Message):
 				
 				if domain not in mlists or (name, domain,) in OUR_ADDRESSES:
 					# then it can't be a list! They'll get the message elsehow.
-					self.data['addresses']['omit'].add((address, header))
+					self._metadata['addresses']['omit'].add((address, header))
 					continue
 				
 				if name not in mlists[domain]:
@@ -136,21 +157,21 @@ class SteppingOutMessage(Message):
 					
 					if namepart[2] in ADMINISTRATIVE_KEYWORDS and name != namepart[2] and namepart[0] in mlists[domain]:
 						# It's an administrative thing!
-						self.data['addresses'][namepart[2]].add((address, mlists[domain][namepart[0]], header))
+						self._metadata['addresses'][namepart[2]].add((address, mlists[domain][namepart[0]], header))
 					
 					# it's not :-(
-					self.data['addresses']['fail'].add(address)
+					self._metadata['addresses']['fail'].add(address)
 					continue
 				
-				self.data['addresses']['lists'].add((address, mlists[domain][name], header))
+				self._metadata['addresses']['lists'].add((address, mlists[domain][name], header))
 		
-		self.data['_addresses'] = True
+		self._metadata['_addresses'] = True
 	
 	def cook_headers(self):
 		"""
 		Remove: DKIM
 		"""
-		list_addrs = set([tuple[1].full_address for tuple in self.data['addresses']['lists']])
+		list_addrs = set([tuple[1].full_address for tuple in self._metadata['addresses']['lists']])
 		for addr in list_addrs:
 			self['X-BeenThere'] = addr
 		
@@ -174,17 +195,23 @@ class SteppingOutMessage(Message):
 		del msg['dkim-signature']
 		del msg['authentication-results']
 	
-	def can_post(user):
+	def can_post(self, user):
 		"""
 		For each mailing list this message is being sent to, check if the user
 		has permission to post to it. If so, add the list recipients to recips.
 		If not, add the list to rejected.
 		"""
-		for mlist in self.data['addresses']['lists']:
-			if mlist[1].can_post(user):
-				self.data['recips'] |= mlist[1].recipients
-			else:
-				self.data['addresses']['rejected'].add(mlist)
+		lists = self._metadata['addresses']['lists']
+		rejected = self._metadata['addresses']['rejected']
+		recips = self._metadata['recips']
 		
-		self.data['addresses']['lists'] -= self.data['addresses']['rejected']
-		return self.data['addresses']['lists'], self.data['addresses']['rejected']
+		for mlist in lists:
+			if mlist[1].can_post(user):
+				recips |= mlist[1].recipients
+			else:
+				rejected.add(mlist)
+		
+		lists -= rejected
+		self._metadata['recips'] = recips
+		self._metadata['addresses'].update({'lists': lists, 'rejected': rejected})
+		return not rejected

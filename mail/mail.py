@@ -4,10 +4,11 @@ from django.contrib.auth.models import User, AnonymousUser
 from models import MailingList
 from sys import stdin
 import email
+from email.parser import Parser
 import smtplib
 from django.conf import settings
-from stepping_out.mail import bounce
 from stepping_out.mail.message import SteppingOutMessage
+from stepping_out.mail.notifications import delivery_failure, permissions_failure
 
 
 MAX_SMTP_RECIPS = 99 # see http://people.dsv.su.se/~jpalme/ietf/mailing-list-behaviour.txt
@@ -36,6 +37,7 @@ def route_email(input = stdin):
 		6. forward the message.
 	"""
 	msg = parse_email(input)
+	msg.parse_addrs()
 	
 	if settings.STEPPING_OUT_MAIL_LOG_PATH and settings.DEBUG_MAIL:
 		# Really, it should always be *logged*, but this isn't what to log. I
@@ -46,11 +48,10 @@ def route_email(input = stdin):
 		fp.write(input.read())
 		fp.write('\n\n\n')
 	
-	if msg.data['addresses']['fail']:
-		# TODO: send an alert to the sender.
-		pass
+	if msg.failed_delivery:
+		delivery_failure(msg)
 	
-	if not msg.data['addresses']['lists']:
+	if not msg.deliver_to:
 		# Then do nothing.
 		return
 	
@@ -63,24 +64,20 @@ def route_email(input = stdin):
 	# Is the email registered with a user? (Should I make it a list of possible
 	# addresses?)
 	try:
-		user = User.objects.get(emails__email=sender_email)
+		user = User.objects.get(emails__email=msg.sender)
 	except User.DoesNotExist:
 		user = AnonymousUser()
 	
 	# Does the user have permission to post to each mailing list? If not, note.
-	lists, rejected = msg.can_post(user)
+	if not msg.can_post(user):
+		permissions_failure(msg)
 	
-	if rejected:
-		for address, mlist, header in rejected:
-			# TODO: generate a failed delivery message.
-			pass
-	
-	if not lists or not msg.data['recips']:
+	if not msg.deliver_to or not msg.recips:
 		# then they were all rejected for that user, or there are no recipients
 		# for some other reason. Do nothing else.
 		return
 	
-	recip_emails = get_user_emails(msg.data['recips'])
+	recip_emails = get_user_emails(msg.recips)
 	
 	forward(msg, recip_emails)
 
@@ -91,7 +88,7 @@ def parse_email(input):
 	just turns it back to a Message in the end anyway.
 	"""
 	input.seek(0)
-	msg = email.Parser(SteppingOutMessage).parse(input)
+	msg = Parser(SteppingOutMessage).parse(input)
 	return msg
 
 
@@ -117,12 +114,12 @@ def forward(msg, recips):
 	# Really, this should be sent separately to each list so that the bounce is
 	# correct, but for now, just pick a random list.
 	env_sender_list = mgs.data['addresses']['lists'].pop()
-	env_sender = env_sender_list[1].address '-bounce@' env_sender_list[1].site.domain
+	env_sender = env_sender_list[1].address + '-bounce@' + env_sender_list[1].site.domain
 	
 	while len(recips) > MAX_SMTP_RECIPS:
 		chunk = set(list(recips)[0:MAX_SMTP_RECIPS])
-		connection.sendmail(msg['from'], chunk, text)
+		connection.sendmail(env_sender, chunk, text)
 		recips -= chunk
 	
-	connection.sendmail(msg['from'], recips, text)
+	connection.sendmail(env_sender, recips, text)
 	connection.quit()
