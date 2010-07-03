@@ -69,7 +69,7 @@ class SteppingOutMessage(Message):
 	
 	@property
 	def id(self):
-		return self['Message-ID']
+		return str(self['Message-ID'])
 	
 	@property
 	def original_sender(self):
