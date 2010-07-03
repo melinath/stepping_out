@@ -17,6 +17,7 @@ MAIL_LOG_PATH = '' #make sure this is writable by the mail server!
 """
 # Perhaps make email domains an object with a foreignkey related to the site?
 
+
 def route_email(input = stdin):
 	"""
 	Steps:
@@ -39,20 +40,12 @@ def route_email(input = stdin):
 	msg = parse_email(input)
 	msg.parse_addrs()
 	
-	if settings.STEPPING_OUT_MAIL_LOG_PATH and settings.DEBUG_MAIL:
-		# Really, it should always be *logged*, but this isn't what to log. I
-		# should be logging things like "did it work?" and storing the messages
-		# somewhere else like a database according to their id.
-		fp = open(settings.STEPPING_OUT_MAIL_LOG_PATH, 'a')
-		input.seek(0)
-		fp.write(input.read())
-		fp.write('\n\n\n')
-	
 	if msg.failed_delivery:
 		delivery_failure(msg)
 	
 	if not msg.deliver_to:
-		# Then do nothing.
+		# Then do nothing but log it.
+		msg.log("All addresses failed for message: %s" % msg.id)
 		return
 	
 	# From here on, we know the mailing lists in question. The question is: who
@@ -65,8 +58,10 @@ def route_email(input = stdin):
 	# addresses?)
 	try:
 		user = User.objects.get(emails__email=msg.sender)
+		msg.log("Msg sender found in database for msg %s" % msg.id)
 	except User.DoesNotExist:
 		user = AnonymousUser()
+		msg.log("Anonymous sender for msg %s" % msg.id)
 	
 	# Does the user have permission to post to each mailing list? If not, note.
 	if not msg.can_post(user):
@@ -75,6 +70,7 @@ def route_email(input = stdin):
 	if not msg.deliver_to or not msg.recips:
 		# then they were all rejected for that user, or there are no recipients
 		# for some other reason. Do nothing else.
+		msg.log("Permissions failure for all addresses for msg: %s" % msg.id)
 		return
 	
 	recip_emails = get_user_emails(msg.recips)
@@ -89,6 +85,7 @@ def parse_email(input):
 	"""
 	input.seek(0)
 	msg = Parser(SteppingOutMessage).parse(input)
+	msg.log("Received message: %s" % msg.id)
 	return msg
 
 
@@ -123,3 +120,4 @@ def forward(msg, recips):
 	
 	connection.sendmail(env_sender, recips, text)
 	connection.quit()
+	msg.log("Forwarded message: msg.id")

@@ -5,6 +5,7 @@ import re
 from email.header import Header
 from email.message import Message
 from django.conf import settings
+from sys import stderr
 
 
 ADMINISTRATIVE_KEYWORDS = ['bounce']
@@ -12,6 +13,8 @@ CONTINUATION_WS = '\t'
 CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
 MAXLINELEN = 78
+MAIL_LOG = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', None)
+
 
 # This is a list of all addresses owned by sites this script deals with.
 # Ideally, it would be dynamically generated. Low priority, since I deliberately
@@ -19,6 +22,7 @@ MAXLINELEN = 78
 OUR_ADDRESSES = [
 	settings.STEPPING_OUT_LISTADMIN_EMAIL
 ]
+
 
 nonascii = re.compile('[^\s!-~]')
 
@@ -39,21 +43,33 @@ class SteppingOutMessage(Message):
 	generate metadata based on its own contents to prepare it for shipping.
 	Important! It doesn't ACT on the metadata. It only creates it.
 	"""
-	_metadata = {
-		'original_sender': '',
-		'recips': set(),
-		'addresses': {
-			'omit': set(),# set of (address, header) tuples that will be put back in place but not sent the message.
-			'lists': set(), # set of (address, list, header) tuples for generating recips
-			'fail': set(), # set of addresses that failed.
-			'rejected': set() # set of (address, list, header) tuples for the lists that the user doesn't have permission to access.
-		},
-		'_addresses': False,
-		'_sender': False
-	}
+	def __init__(self):
+		super(SteppingOutMessage, self).__init__()
+		
+		try:
+			self._log = open(MAIL_LOG, 'w')
+		except:
+			self._log = stderr
+		
+		self._meta = {
+			'original_sender': '',
+			'recips': set(),
+			'addresses': {
+				'omit': set(),# set of (address, header) tuples that will be put back in place but not sent the message.
+				'lists': set(), # set of (address, list, header) tuples for generating recips
+				'fail': set(), # set of addresses that failed.
+				'rejected': set() # set of (address, list, header) tuples for the lists that the user doesn't have permission to access.
+			},
+			'_addresses': False,
+			'_sender': False
+		}
+		
+		for kw in ADMINISTRATIVE_KEYWORDS:
+			self._meta['addresses'][kw] = set()
 	
-	for kw in ADMINISTRATIVE_KEYWORDS:
-		_metadata['addresses'][kw] = set()
+	@property
+	def id(self):
+		return self['Message-ID']
 	
 	@property
 	def original_sender(self):
@@ -217,3 +233,6 @@ class SteppingOutMessage(Message):
 		self._metadata['recips'] = recips
 		self._metadata['addresses'].update({'lists': lists, 'rejected': rejected})
 		return not rejected
+	
+	def log(self, value):
+		self._log.write(value+"\n")
