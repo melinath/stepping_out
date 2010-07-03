@@ -73,23 +73,23 @@ class SteppingOutMessage(Message):
 	
 	@property
 	def original_sender(self):
-		return self._metadata['original_sender']
+		return self._meta['original_sender']
 	
 	@property
 	def failed_delivery(self):
-		return self._metadata['addresses']['fail']
+		return self._meta['addresses']['fail']
 	
 	@property
 	def deliver_to(self):
-		return self._metadata['addresses']['lists']
+		return self._meta['addresses']['lists']
 	
 	@property
 	def rejected(self):
-		return self._metadata['addresses']['rejected']
+		return self._meta['addresses']['rejected']
 	
 	@property
 	def recips(self):
-		return self._metadata['recips']
+		return self._meta['recips']
 	
 	@property
 	def sender(self):
@@ -135,11 +135,11 @@ class SteppingOutMessage(Message):
 		self.parse_to_and_cc()
 	
 	def get_sender_addr(self):
-		if self._metadata['_sender']:
+		if self._meta['_sender']:
 			return
 		
-		self._metadata['original_sender'] = self.sender
-		self._metadata['_sender'] = True
+		self._meta['original_sender'] = self.sender
+		self._meta['_sender'] = True
 	
 	def parse_to_and_cc(self):
 		"""
@@ -153,7 +153,7 @@ class SteppingOutMessage(Message):
 		TODO: What about multiline address lists? Do I need to worry about unwrapping?
 		Mailman comments claim a getaddresses bug...
 		"""
-		if self._metadata['_addresses']: #Then we were already here.
+		if self._meta['_addresses']: #Then we were already here.
 			return
 		
 		headers = ['to', 'cc', 'resent-to', 'resent-cc']
@@ -166,7 +166,7 @@ class SteppingOutMessage(Message):
 				
 				if domain not in mlists or (name, domain,) in OUR_ADDRESSES:
 					# then it can't be a list! They'll get the message elsehow.
-					self._metadata['addresses']['omit'].add((address, header))
+					self._meta['addresses']['omit'].add((address, header))
 					continue
 				
 				if name not in mlists[domain]:
@@ -175,21 +175,21 @@ class SteppingOutMessage(Message):
 					
 					if namepart[2] in ADMINISTRATIVE_KEYWORDS and name != namepart[2] and namepart[0] in mlists[domain]:
 						# It's an administrative thing!
-						self._metadata['addresses'][namepart[2]].add((address, mlists[domain][namepart[0]], header))
+						self._meta['addresses'][namepart[2]].add((address, mlists[domain][namepart[0]], header))
 					
 					# it's not :-(
-					self._metadata['addresses']['fail'].add(address)
+					self._meta['addresses']['fail'].add(address)
 					continue
 				
-				self._metadata['addresses']['lists'].add((address, mlists[domain][name], header))
+				self._meta['addresses']['lists'].add((address, mlists[domain][name], header))
 		
-		self._metadata['_addresses'] = True
+		self._meta['_addresses'] = True
 	
 	def cook_headers(self):
 		"""
 		Remove: DKIM
 		"""
-		list_addrs = set([tuple[1].full_address for tuple in self._metadata['addresses']['lists']])
+		list_addrs = set([tuple[1].full_address for tuple in self._meta['addresses']['lists']])
 		for addr in list_addrs:
 			self['X-BeenThere'] = addr
 		
@@ -219,9 +219,9 @@ class SteppingOutMessage(Message):
 		has permission to post to it. If so, add the list recipients to recips.
 		If not, add the list to rejected.
 		"""
-		lists = self._metadata['addresses']['lists']
-		rejected = self._metadata['addresses']['rejected']
-		recips = self._metadata['recips']
+		lists = self._meta['addresses']['lists']
+		rejected = self._meta['addresses']['rejected']
+		recips = self._meta['recips']
 		
 		for mlist in lists:
 			if mlist[1].can_post(user):
@@ -230,8 +230,8 @@ class SteppingOutMessage(Message):
 				rejected.add(mlist)
 		
 		lists -= rejected
-		self._metadata['recips'] = recips
-		self._metadata['addresses'].update({'lists': lists, 'rejected': rejected})
+		self._meta['recips'] = recips
+		self._meta['addresses'].update({'lists': lists, 'rejected': rejected})
 		return not rejected
 	
 	def log(self, value):
