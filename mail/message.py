@@ -44,7 +44,7 @@ class SteppingOutMessage(Message):
 	Important! It doesn't ACT on the metadata. It only creates it.
 	"""
 	def __init__(self):
-		super(SteppingOutMessage, self).__init__()
+		Message.__init__(self)
 		
 		try:
 			self._log = open(MAIL_LOG, 'w')
