@@ -240,7 +240,7 @@ class SteppingOutMessage(Message):
 			if mlist[1].can_post(user):
 				recips |= mlist[1].recipients
 			else:
-				rejected.add(mlist)
+				rejected.add(mlist[0])
 		
 		lists -= rejected
 		self._meta['recips'] = recips
