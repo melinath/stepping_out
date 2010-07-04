@@ -4,7 +4,7 @@ from django.conf import settings
 
 def delivery_failure(msg):
 	FAILED = msg.failed_delivery
-	msg.log("Delivery failed: %s at %s" % (msg.id, ', '.join(FAILED),))
+	msg.log.error("Delivery failed at %s" % ', '.join(FAILED))
 	body = """Hi there! Sorry to bother, but delivery of your message failed at the following addresses:
 %s
 
@@ -17,7 +17,7 @@ The message you sent was:
 
 def permissions_failure(msg):
 	FAILED = msg.rejected
-	msg.log("Permissions error: %s at %s" % (msg.id, ', '.join(FAILED),))
+	msg.log.error("Permissions error at %s" % ', '.join(FAILED))
 	body = """Hi there! You've just tried to post to the following addresses:
 %s
 

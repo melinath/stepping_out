@@ -38,44 +38,47 @@ def route_email(input = stdin):
 		6. forward the message.
 	"""
 	msg = parse_email(input)
-	msg.parse_addrs()
-	
-	if msg.failed_delivery:
-		delivery_failure(msg)
-	
-	if not msg.deliver_to:
-		# Then do nothing but log it.
-		msg.log("All addresses failed for message: %s" % msg.id)
-		return
-	
-	# From here on, we know the mailing lists in question. The question is: who
-	# is sending the message, and which mailing lists do they have permission to
-	# send to? So: 1. What is the sending address? Could be envelope sender,
-	# sender, from...
-	
-	
-	# Is the email registered with a user? (Should I make it a list of possible
-	# addresses?)
 	try:
-		user = User.objects.get(emails__email=msg.sender)
-		msg.log("Msg sender found in database for msg %s" % msg.id)
-	except User.DoesNotExist:
-		user = AnonymousUser()
-		msg.log("Anonymous sender for msg %s" % msg.id)
-	
-	# Does the user have permission to post to each mailing list? If not, note.
-	if not msg.can_post(user):
-		permissions_failure(msg)
-	
-	if not msg.deliver_to or not msg.recips:
-		# then they were all rejected for that user, or there are no recipients
-		# for some other reason. Do nothing else.
-		msg.log("Permissions failure for all addresses for msg: %s" % msg.id)
-		return
-	
-	recip_emails = get_user_emails(msg.recips)
-	
-	forward(msg, recip_emails)
+		msg.parse_addrs()
+		
+		if msg.failed_delivery:
+			delivery_failure(msg)
+		
+		if not msg.deliver_to:
+			# Then do nothing but log it.
+			msg.log.error("Delivery Error: All addresses failed")
+			return
+		
+		# From here on, we know the mailing lists in question. The question is: who
+		# is sending the message, and which mailing lists do they have permission to
+		# send to? So: 1. What is the sending address? Could be envelope sender,
+		# sender, from...
+		
+		
+		# Is the email registered with a user? (Should I make it a list of possible
+		# addresses?)
+		try:
+			user = User.objects.get(emails__email=msg.sender)
+			msg.log.info("Msg sender found in database for msg %s" % msg.id)
+		except User.DoesNotExist:
+			user = AnonymousUser()
+			msg.log.info("Anonymous sender for msg %s" % msg.id)
+		
+		# Does the user have permission to post to each mailing list? If not, note.
+		if not msg.can_post(user):
+			permissions_failure(msg)
+		
+		if not msg.deliver_to or not msg.recips:
+			# then they were all rejected for that user, or there are no recipients
+			# for some other reason. Do nothing else.
+			msg.log.error("Permissions failure for all addresses")
+			return
+		
+		recip_emails = get_user_emails(msg.recips)
+		
+		forward(msg, recip_emails)
+	except:
+		msg.log.exception('')
 
 
 def parse_email(input):
@@ -85,7 +88,7 @@ def parse_email(input):
 	"""
 	input.seek(0)
 	msg = Parser(SteppingOutMessage).parse(input)
-	msg.log("Received message: %s" % msg.id)
+	msg.log.info("Received message")
 	return msg
 
 
@@ -110,7 +113,7 @@ def forward(msg, recips):
 	
 	# Really, this should be sent separately to each list so that the bounce is
 	# correct, but for now, just pick a random list.
-	env_sender_list = msg._metadata['addresses']['lists'].pop()
+	env_sender_list = msg._meta['addresses']['lists'].pop()
 	env_sender = env_sender_list[1].address + '-bounce@' + env_sender_list[1].site.domain
 	
 	while len(recips) > MAX_SMTP_RECIPS:
@@ -118,6 +121,9 @@ def forward(msg, recips):
 		connection.sendmail(env_sender, chunk, text)
 		recips -= chunk
 	
-	connection.sendmail(env_sender, recips, text)
+	refused = connection.sendmail(env_sender, recips, text)
 	connection.quit()
-	msg.log("Forwarded message: msg.id")
+	if refused:
+		# should I send this back to the sender, as well?
+		msg.log.error("Message delivery failed at %s" % ', '.join(refused.keys()))
+	msg.log.info("Forwarded message")
