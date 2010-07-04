@@ -6,6 +6,7 @@ from email.header import Header
 from email.message import Message
 from django.conf import settings
 from sys import stderr
+import logging
 
 
 ADMINISTRATIVE_KEYWORDS = ['bounce']
@@ -13,7 +14,14 @@ CONTINUATION_WS = '\t'
 CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
 MAXLINELEN = 78
-MAIL_LOG = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', None)
+
+MAIL_LOG = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', '')
+MAIL_LOG_FORMAT = getattr(
+	settings,
+	'STEPPING_OUT_MAIL_LOG_FORMAT',
+	'%(asctime)s %(msgid)s %(message)s'
+)
+logging.basicConfig(filename=MAIL_LOG, level=logging.DEBUG, format=MAIL_LOG_FORMAT)
 
 
 # This is a list of all addresses owned by sites this script deals with.
@@ -46,11 +54,6 @@ class SteppingOutMessage(Message):
 	def __init__(self):
 		Message.__init__(self)
 		
-		try:
-			self._log = open(MAIL_LOG, 'w')
-		except:
-			self._log = stderr
-		
 		self._meta = {
 			'original_sender': '',
 			'recips': set(),
@@ -66,6 +69,16 @@ class SteppingOutMessage(Message):
 		
 		for kw in ADMINISTRATIVE_KEYWORDS:
 			self._meta['addresses'][kw] = set()
+	
+	@property
+	def log(self):
+		if not hasattr(self, '_log'):
+			self._log = logging.LoggerAdapter(
+				logging.getLogger('msg_logger'),
+				{'msgid': self.id}
+			)
+		
+		return self._log
 	
 	@property
 	def id(self):
@@ -233,6 +246,3 @@ class SteppingOutMessage(Message):
 		self._meta['recips'] = recips
 		self._meta['addresses'].update({'lists': lists, 'rejected': rejected})
 		return not rejected
-	
-	def log(self, value):
-		self._log.write(value+"\n")
