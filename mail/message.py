@@ -15,13 +15,22 @@ CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
 MAXLINELEN = 78
 
-MAIL_LOG = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', '')
+MAIL_LOG = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', '~/.mail.log')
 MAIL_LOG_FORMAT = getattr(
 	settings,
 	'STEPPING_OUT_MAIL_LOG_FORMAT',
 	'%(asctime)s %(msgid)s %(message)s'
 )
-logging.basicConfig(filename=MAIL_LOG, level=logging.DEBUG, format=MAIL_LOG_FORMAT)
+logging.basicConfig(level=logging.DEBUG, format=MAIL_LOG_FORMAT)
+LOGGER = logging.getLogger('msg_logger')
+LOGGER.addhandler(
+	logging.handlers.RotatingFileHandler(
+		LOG_FILENAME,
+		maxBytes=10000,
+		backupCount=5
+	)
+)
+
 
 
 # This is a list of all addresses owned by sites this script deals with.
@@ -74,7 +83,7 @@ class SteppingOutMessage(Message):
 	def log(self):
 		if not hasattr(self, '_log'):
 			self._log = logging.LoggerAdapter(
-				logging.getLogger('msg_logger'),
+				LOGGER,
 				{'msgid': self.id}
 			)
 		
