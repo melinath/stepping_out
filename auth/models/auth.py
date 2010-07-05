@@ -19,10 +19,16 @@ __all__ = (
 PhoneNumberField(blank=True).contribute_to_class(User, 'phone_number')
 
 
+class TermManager(models.Manager):
+	def get_current(self):
+		return self.exclude(start__gt=datetime.now).exclude(end__lt=datetime.now)
+
+
 class Term(models.Model):
 	start = models.DateField()
 	end = models.DateField()
 	name = models.CharField(max_length=30, blank = True)
+	objects = TermManager()
 	
 	def __unicode__(self):
 		if(self.name):
@@ -46,79 +52,6 @@ class OfficerUserMetaInfo(models.Model):
 		
 	def __unicode__(self):
 		return '%s :: %s' % (self.user.get_full_name(), self.officer_position)
-
-
-class ExtendedOfficerPositionManager(models.Manager):
-	"""
-	I need to be able to return:
-		1. - A list of all users who are currently officers.
-		   - A list of users who currently occupy an arbitrarily named position
-		2. - A list of all (officerposition, user_list) tuples
-		   - The (officerposition, user_list) tuple for an arbitrary position
-	"""
-		
-	def get_current_terms(self):
-		return Term.objects.exclude(
-			start__gt=datetime.now
-		).exclude(
-			end__lt=datetime.now
-		)
-		
-	def get_results_for_terms(self, termlist, func, *args, **kwargs):
-		"""Where termlist is a list of Term objects."""
-		result_set = set()
-		for term in termlist:
-			for meta in term.officerusermetainfo_set.all():
-				result_set |= func(meta, *args, **kwargs)
-		
-		return result_set
-		
-	def get_positions_for_terms(self, termlist):
-		def func(meta):
-			return set([meta.officer_position])
-		return self.get_results_for_terms(termlist, func)
-				
-	def get_users_for_terms(self, termlist, position = None):
-		def func(meta, position):
-			if position == None or position == meta.officer_position.name:
-				return set([meta.user])
-			return set()
-		return self.get_results_for_terms(termlist, func, position)
-			
-	def get_tuples_for_terms(self, termlist, position = None):
-		def func(meta, position):
-			if position == None or position == meta.officer_position.name:
-				return set([(meta.user, meta.officer_position)])
-			return set()
-		return self.get_results_for_terms(termlist, func, position)
-		
-	def get_list_for_terms(self, termlist, position = None, sort=True):
-		tuples = self.get_tuples_for_terms(termlist, position)
-		officer_dict = {}
-		officer_list = []
-		for tuple in tuples:
-			try:
-				assert officer_dict[tuple[1]]
-			except KeyError:
-				officer_dict[tuple[1]] = set()
-			officer_dict[tuple[1]].add(tuple[0])
-		
-		for position in officer_dict:
-			officer_list.append((position, officer_dict[position]))
-		
-		if sort is True:
-			return sorted(officer_list, key=lambda officer: officer[0].order)
-			
-		return officer_list
-		
-	def get_current_users(self, *args, **kwargs):
-		return self.get_users_for_terms(self.get_current_terms(), *args, **kwargs)
-		
-	def get_current_tuples(self, *args, **kwargs):
-		return self.get_tuples_for_terms(self.get_current_terms(), *args, **kwargs)
-		
-	def get_current_list(self, *args, **kwargs):
-		return self.get_list_for_terms(self.get_current_terms(), *args, **kwargs)
 		
 
 class OfficerPosition(models.Model):
@@ -133,10 +66,16 @@ class OfficerPosition(models.Model):
 	permissions = models.ManyToManyField(Permission, blank=True, null=True)
 	order = models.IntegerField()
 	users = models.ManyToManyField(User, through='OfficerUserMetaInfo')
-	objects = ExtendedOfficerPositionManager()
 	
 	def __unicode__(self):
 		return self.name
+	
+	def users_for_terms(self, termlist):
+		return self.users.filter(officerusermetainfo__terms__in=termlist)
+	
+	@property
+	def current_users(self):
+		return self.users_for_terms(Term.objects.get_current())
 	
 	class Meta:
 		app_label = 'stepping_out'

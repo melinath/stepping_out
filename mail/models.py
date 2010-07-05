@@ -4,6 +4,8 @@ from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.contrib.sites.models import Site
 from stepping_out.mail.validators import EmailNameValidator
+from stepping_out.mail.userlists import UserListPlugin
+from django.utils import simplejson as json
 
 
 SUBSCRIPTION_CHOICES = (
@@ -11,43 +13,45 @@ SUBSCRIPTION_CHOICES = (
 	('sub', 'Subscribers',),
 	('all', 'Anyone',),
 )
+USERLIST_CHOICES = [(k,unicode(v.__name__)) for k,v in UserListPlugin.plugins.items()]
 
 
 class UserList(models.Model):
-	"Still need validation"
 	name = models.CharField(max_length = 50)
-	content_type = models.ForeignKey(ContentType)
-	manager = models.CharField(
-		max_length=30,
-		help_text = "The manager's method must return a set of users. Default manager: objects.",
-		blank = True
+	plugin = models.CharField(
+		max_length = 20,
+		blank=True,
+		choices=USERLIST_CHOICES
 	)
-	method = models.CharField(
-		max_length=30,
-		help_text = "The manager's method must return a set of users. Default method: all",
-		blank = True
-	)
-	arg = models.CharField(
+	json_value = models.TextField(
 		max_length=30,
 		blank = True,
-		help_text = "The manager method may take a single string argument."
+		help_text = "JSON - to be passed as an arg."
 	)
+	
+	def get_value(self):
+		if self.json_value == '':
+			return None
+		return json.loads(self.json_value)
+	
+	def set_value(self, value):
+		self.json_value = json.dumps(value)
+	
+	def delete_value(self):
+		self.json_value = json.dumps(None)
+	
+	value = property(get_value, set_value, delete_value)
+	
+	def get_list(self):
+		if not hasattr(self, '_list'):
+			self._list = UserListPlugin.plugins[self.plugin](self.value)
+		
+		return self._list.get_list()
+	
+	list = property(get_list)
 	
 	def __unicode__(self):
 		return self.name
-		
-	def compile(self):
-		model = self.content_type.model_class()
-		manager = self.manager or u'objects'
-		method = self.method or u'all'
-		arg = self.arg
-		
-		function = model.__dict__[manager].manager.__getattribute__(method)
-		
-		if arg:
-			return function(arg)
-		else:
-			return function()
 	
 	class Meta:
 		app_label = 'stepping_out'
@@ -140,19 +144,6 @@ class MailingList(models.Model):
 	def __unicode__(self):
 		return self.name
 	
-	def remove_user(self, user):
-		"""
-		user should be a user instance. This will take a user off the list.
-		Is this actually useful?
-		"""
-		pass
-	
-	def add_user(self, user):
-		"""
-		user should be a user instance. This will add a user to the list.
-		"""
-		pass
-	
 	@property
 	def subscribers(self):
 		return self.get_user_set('subscribed')
@@ -171,7 +162,7 @@ class MailingList(models.Model):
 			userset |= set(group.user_set.all())
 			
 		for userlist in getattr(self, '%s_userlists' % prefix).all():
-			userset |= set(userlist.compile())
+			userset |= set(userlist.list)
 			
 		return userset
 		

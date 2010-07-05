@@ -61,11 +61,14 @@ class SteppingOutUserAdmin(UserAdmin):
 		return form
 	
 	def save_model(self, request, obj, form, change):
+		# TODO: If primary_email is '', do nothing. otherwise, validate that
+		# the email is unique to useremails before saving!
 		primary_email = obj.emails.get_or_create(email=obj.email)
 		super(SteppingOutUserAdmin, self).save_model(request, obj, form, change)
 
 from django.utils.translation import ugettext_lazy as _
 User._meta.get_field('email').verbose_name = _('primary email')
+User._meta.get_field('email')._unique = True
 
 
 admin.site.unregister(User)
