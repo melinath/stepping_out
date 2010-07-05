@@ -3,13 +3,18 @@ Essentially, pull everything together here and define the actual User admin.
 """
 
 
+from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserChangeForm
 from stepping_out.auth.admin.auth import OfficerPositionInline
 from stepping_out.auth.admin.mail import UserEmailInline
 from stepping_out.auth.admin.workshops import WorkshopProfileInline, HousingProfileInline, HousingPreferencesProfileInline
 from stepping_out.auth.widgets import SelectOther, AdminEmailInputWidget
+from stepping_out.auth.validators import UserEmailValidator
+from django.utils.translation import ugettext_lazy as _
+from django.core.validators import validate_email
 
 
 USER_INLINES = [
@@ -20,6 +25,33 @@ USER_INLINES = [
 	HousingPreferencesProfileInline
 ]
 COLLAPSE_CLOSED_CLASSES = ('collapse', 'collapse-closed', 'closed',)
+
+
+class SteppingOutUserAdminForm(UserChangeForm):
+	def __init__(self, data=None, files=None, auto_id='id_%s', prefix=None,
+				initial=None, error_class=forms.util.ErrorList, label_suffix=':',
+				empty_permitted=False, instance=None):
+		if instance:
+			CHOICES = [(email.email, email.email) for email in instance.emails.all()]
+		else:
+			CHOICES = ()
+		
+		self.base_fields['email'] = forms.CharField(
+			label='Primary email',
+			widget=SelectOther(other=AdminEmailInputWidget, choices=CHOICES),
+			required=False,
+			validators = [validate_email, UserEmailValidator(instance=instance)]
+		) 
+		super(SteppingOutUserAdminForm, self).__init__(
+			data, files, auto_id, prefix, initial, error_class, label_suffix,
+			empty_permitted, instance
+		)
+	
+	def save(self, commit=True):
+		instance = super(SteppingOutUserAdminForm, self).save(commit)
+		#if commit: - should this be deferred somehow? The admin uses commit=False
+		email = instance.emails.get_or_create(email=instance.email)
+		return instance
 
 
 class SteppingOutUserAdmin(UserAdmin):
@@ -45,29 +77,9 @@ class SteppingOutUserAdmin(UserAdmin):
 		}),
 	)
 	filter_horizontal = ('groups',)
-	#The value for email, when the model is saved, should be added to the useremails
-	#if it doesn't already exist.
-	# so on save, expect to process a string.
-	
-	def get_form(self, request, obj=None, **kwargs):
-		form = super(SteppingOutUserAdmin, self).get_form(request, obj, **kwargs)
-		
-		if obj:
-			CHOICES = [(email.email, email.email) for email in obj.emails.all()]
-		else:
-			CHOICES = ()
-		
-		form.base_fields['email'].widget = SelectOther(other=AdminEmailInputWidget, choices=CHOICES)
-		return form
-	
-	def save_model(self, request, obj, form, change):
-		# TODO: If primary_email is '', do nothing. otherwise, validate that
-		# the email is unique to useremails before saving!
-		primary_email = obj.emails.get_or_create(email=obj.email)
-		super(SteppingOutUserAdmin, self).save_model(request, obj, form, change)
+	form = SteppingOutUserAdminForm
 
-from django.utils.translation import ugettext_lazy as _
-User._meta.get_field('email').verbose_name = _('primary email')
+
 User._meta.get_field('email')._unique = True
 
 

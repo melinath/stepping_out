@@ -8,6 +8,7 @@ TODO: Use signals to handle adding/dropping of userlist models for officer posit
 
 from stepping_out.auth.models import OfficerPosition
 from django.template.defaultfilters import slugify
+from django.db.models import signals
 
 
 class UserListPluginMount(type):
@@ -48,3 +49,25 @@ class CurrentOfficers(UserListPlugin):
 				userlist.extend(position.current_users)
 		
 		return userlist
+
+
+def add_officer_userlist(instance, created, **kwargs):
+	from stepping_out.mail.models import UserList
+	if created:
+		UserList.objects.get_or_create(
+			name = "Current Officers (%s)" % instance.name,
+			json_value = str(instance.id),
+			plugin = 'currentofficers'
+		)
+
+def del_officer_userlist(instance, **kwargs):
+	from stepping_out.mail.models import UserList
+	try:
+		obj = UserList.objects.get(plugin='currentofficers', json_value=str(instance.id))
+	except UserList.DoesNotExist:
+		pass
+	else:
+		obj.delete()
+
+signals.post_save.connect(add_officer_userlist, sender=OfficerPosition)
+signals.post_delete.connect(del_officer_userlist, sender=OfficerPosition)

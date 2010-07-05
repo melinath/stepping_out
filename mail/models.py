@@ -4,7 +4,6 @@ from django.contrib.contenttypes.models import ContentType
 from django import forms
 from django.contrib.sites.models import Site
 from stepping_out.mail.validators import EmailNameValidator
-from stepping_out.mail.userlists import UserListPlugin
 from django.utils import simplejson as json
 
 
@@ -13,10 +12,11 @@ SUBSCRIPTION_CHOICES = (
 	('sub', 'Subscribers',),
 	('all', 'Anyone',),
 )
-USERLIST_CHOICES = [(k,unicode(v.__name__)) for k,v in UserListPlugin.plugins.items()]
 
 
 class UserList(models.Model):
+	from stepping_out.mail.userlists import UserListPlugin
+	USERLIST_CHOICES = [(k,unicode(v.__name__)) for k,v in UserListPlugin.plugins.items()]
 	name = models.CharField(max_length = 50)
 	plugin = models.CharField(
 		max_length = 20,
