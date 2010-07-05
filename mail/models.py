@@ -48,6 +48,9 @@ class UserList(models.Model):
 			return function(arg)
 		else:
 			return function()
+	
+	class Meta:
+		app_label = 'stepping_out'
 
 
 class MailingListManager(models.Manager):
@@ -71,9 +74,15 @@ class MailingList(models.Model):
 	This model contains all options for a mailing list, as well as some helpful
 	methods for accessing subscribers, moderators, etc.
 	"""
+	#from django.db.utils import DatabaseError
+	#try:
+	#	DEFAULT_SITE = Site.objects.get_current()
+	#except DatabaseError:
+	DEFAULT_SITE = None
+	
 	name = models.CharField(max_length=50)
 	address = models.CharField(max_length=100, validators=[EmailNameValidator()])
-	site = models.ForeignKey(Site, verbose_name="@", default=Site.objects.get_current())
+	site = models.ForeignKey(Site, verbose_name="@", default=DEFAULT_SITE)
 	objects = MailingListManager()
 	
 	subscribed_users = models.ManyToManyField(
@@ -184,3 +193,4 @@ class MailingList(models.Model):
 	
 	class Meta:
 		unique_together = ('site', 'address',)
+		app_label = 'stepping_out'

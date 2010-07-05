@@ -1,75 +1,85 @@
 from django.db import models
 from django import forms
 
+
 class Category(models.Model):
-    name = models.CharField(max_length=50)
-    parent = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        related_name='children'
-    )
-    description = models.TextField(blank=True)
-    
-    class Meta:
-        verbose_name_plural='categories'
-        ordering = ('name',)
-    
-    def parent_name(self):
-        try:
-            return self.parent.name
-        except:
-            return self.parent
-    parent_name.admin_order_field = 'parent'
-    
-    def path(self):
-        if self.parent:
-            return '%s // %s' % (self.parent.__unicode__(), self.name,)
-        
-        return self.name
-    
-    def __unicode__(self):
-        return self.path()
-    
-    def check_parentage(self):
-        parent = self.parent
-        while parent:
-            if parent == self:
-                raise Exception("A category can't be its own parent!")
-            parent = parent.parent
-    
-    def save(self):
-        self.check_parentage()
-        super(Category, self).save()
+	name = models.CharField(max_length=50)
+	parent = models.ForeignKey(
+		'self',
+		null=True,
+		blank=True,
+		related_name='children'
+	)
+	description = models.TextField(blank=True)
+	
+	class Meta:
+		verbose_name_plural='categories'
+		ordering = ('name',)
+		app_label = 'stepping_out'
+	
+	def parent_name(self):
+		try:
+			return self.parent.name
+		except:
+			return self.parent
+	parent_name.admin_order_field = 'parent'
+	
+	def path(self):
+		if self.parent:
+			return '%s // %s' % (self.parent.__unicode__(), self.name,)
+		
+		return self.name
+	
+	def __unicode__(self):
+		return self.path()
+	
+	def check_parentage(self):
+		parent = self.parent
+		while parent:
+			if parent == self:
+				raise Exception("A category can't be its own parent!")
+			parent = parent.parent
+	
+	def save(self):
+		self.check_parentage()
+		super(Category, self).save()
 
 class Link(models.Model):
-    uid = models.CharField(max_length=200, editable=False)
-    url = models.URLField(max_length=200)
-    name = models.CharField(max_length=50)
-    
-    created = models.DateTimeField(auto_now_add = True)
-    last_modified = models.DateTimeField(auto_now = True)
-    
-    categories = models.ManyToManyField(Category, through='LinkMetaInfo')
-    
-    def __unicode__(self):
-        return self.name
+	uid = models.CharField(max_length=200, editable=False)
+	url = models.URLField(max_length=200)
+	name = models.CharField(max_length=50)
+	
+	created = models.DateTimeField(auto_now_add = True)
+	last_modified = models.DateTimeField(auto_now = True)
+	
+	categories = models.ManyToManyField(Category, through='LinkMetaInfo')
+	
+	def __unicode__(self):
+		return self.name
+	
+	class Meta:
+		app_label = 'stepping_out'
+
 
 class LinkMetaInfo(models.Model):
-    """
-    A link can be part of many categories and each category can contain many links.
-    However, within each link it can only be part of one subcategory and it can
-    only have one help text. So, part of the through field.
-    More efficient to choose the lowest level and then just have it be added
-    to each parent automatically. No - leaf model! Just add it to the lowest
-    category.
-    """
-    link = models.ForeignKey(Link)
-    category = models.ForeignKey(Category)
-    description = models.TextField(blank=True)
-    
-    def __unicode__(self):
-        return '%s: %s' % (self.category.__unicode__(), self.link.__unicode__())
+	"""
+	A link can be part of many categories and each category can contain many links.
+	However, within each link it can only be part of one subcategory and it can
+	only have one help text. So, part of the through field.
+	More efficient to choose the lowest level and then just have it be added
+	to each parent automatically. No - leaf model! Just add it to the lowest
+	category.
+	"""
+	link = models.ForeignKey(Link)
+	category = models.ForeignKey(Category)
+	description = models.TextField(blank=True)
+	
+	def __unicode__(self):
+		return '%s: %s' % (self.category.__unicode__(), self.link.__unicode__())
+	
+	class Meta:
+		app_label = 'stepping_out'
+
 
 """
 Each link should have:
