@@ -1,0 +1,20 @@
+{% extends 'stepping_out/modules/base.html' %}
+
+{% block navbar %}{% endblock %}
+
+{% block content %}
+{% if message %}<p class='error'>{{ message }}</p>{% endif %}
+<form action='' method='post'>
+{% csrf_token %}
+{% for field in form.hidden_fields %}
+{{ field }}
+{% endfor %}
+<dl>
+{% for field in form.visible_fields %}
+	<dt>{{ field.label_tag }}</dt>
+	<dd>{{ field }}</dt>
+{% endfor %}
+</dl>
+<button type='submit'>Login</button>
+</form>
+{% endblock %}

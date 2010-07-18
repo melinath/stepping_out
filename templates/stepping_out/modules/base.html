@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>{% block title %}Stepping Out User Admin{% endblock %}</title>
+</head>
+
+<body>
+	<div id='main'>
+		<div id='header'>
+		</div>
+		<div id='navbar'>
+			{% block navbar %}{% include 'stepping_out/modules/navbar.html' %}{% endblock %}
+		</div>
+		<div id='toolbar'>
+			{% include 'stepping_out/modules/logged_in.html' %}
+		</div>
+		<div id='content'>
+			{% block content %}{% endblock %}
+		</div>
+	</div>
+</body>
+
+</html>

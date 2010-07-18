@@ -1,0 +1,10 @@
+{% if request.user.is_authenticated %}
+<ul class='toolbar'>
+	<li>Hi, {{ request.user.get_full_name }}!</li>
+	<li>
+		<form action='{% url stepping_out_admin_logout %}' method='post'>
+			<button type='submit' id='logout'>Log out</button>
+		</form>
+	</li>
+</ul>
+{% endif %}
