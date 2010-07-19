@@ -1,4 +1,6 @@
-from stepping_out.modules import ModuleModel, Section, site
+from stepping_out.modules.modules import ModuleModel
+from stepping_out.modules.sections import Section
+from stepping_out.modules.sites import site
 from django.contrib.auth.models import User
 
 

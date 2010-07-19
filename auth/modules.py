@@ -4,21 +4,18 @@ from stepping_out.modules.defaults import UserModel
 
 class ProfileModule(Module):
 	models = (
-		(UserModel, ['first_name', 'last_name',]),
+		UserModel(['first_name', 'last_name',]),
 	)
 	fieldsets = (
 		(None, {
-			'fields': ['first_name']
+			'fields': ['first_name', 'last_name']
 		}),
-		('Part Two', {
-			'fields': ['last_name']
-		})
 	)
 
 
 class RideModule(Module):
 	models = (
-		(UserModel, ['phone_number']),
+		UserModel(['phone_number']),
 	)
 
 
@@ -35,7 +32,9 @@ class RideModule(Module):
 
 
 
-class ProfileSection(Section):
+class PreferencesSection(Section):
+	title = "Account Preferences"
+	slug = "preferences"
 	help_text = "Here you can set all sorts of exciting profile information!"
 	modules = [
 		ProfileModule,
@@ -45,4 +44,4 @@ class ProfileSection(Section):
 	]
 
 
-site.register(ProfileSection)
+site.register(PreferencesSection)

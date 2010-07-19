@@ -10,6 +10,7 @@
 			{% for field in fieldset %}
 				<dt>{{ field.label_tag }}</dt>
 				<dd>{{ field }}</dd>
+				<dd>{{ field.errors }}</dd>
 			{% endfor %}
 			</dl>
 		{% endfor %}

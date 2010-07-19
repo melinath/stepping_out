@@ -8,7 +8,7 @@ from django.template import RequestContext
 from django.utils.translation import ugettext_lazy, ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
-from stepping_out.modules import Section
+from stepping_out.modules.sections import Section
 from django import forms
 
 

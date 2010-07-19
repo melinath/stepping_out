@@ -1,6 +1,7 @@
-from stepping_out.modules.modules import ModuleModel, Module, Section
-from stepping_out.modules.sites import ModuleAdminSite, site
 from stepping_out.modules import defaults
+from stepping_out.modules.modules import Module, ModuleModel, ModuleMultiModel
+from stepping_out.modules.sections import Section
+from stepping_out.modules.sites import ModuleAdminSite, site
 
 
 def autodiscover():
