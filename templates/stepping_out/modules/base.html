@@ -1,19 +1,25 @@
-<!DOCTYPE html>
+{% spaceless %}
+
+{% load staticmedia %}
+
+{% endspaceless %}<!DOCTYPE html>
 
 <html>
 
 <head>
 	<title>{% block title %}Stepping Out User Admin{% endblock %}</title>
+	<link rel='stylesheet' type='text/css' href='{% mediaurl "stepping_out/modules/base.css" %}' />
 </head>
 
 <body>
 	<div id='main'>
 		<div id='header'>
+			<h1>{% block admin_header %}Stepping Out User Admin{% endblock %}</h1>
 		</div>
-		<div id='navbar'>
+		<div class='container one'>
 			{% block navbar %}{% include 'stepping_out/modules/navbar.html' %}{% endblock %}
 		</div>
-		<div id='toolbar'>
+		<div class='container two'>
 			{% include 'stepping_out/modules/logged_in.html' %}
 		</div>
 		<div id='content'>

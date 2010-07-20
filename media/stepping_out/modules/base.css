@@ -1,0 +1,95 @@
+*{padding:0;margin:0;background:transparent;border:0;text-decoration:none;}
+ul,ol,li{list-style:none;}
+
+body{
+	font:15px/20px Georgia;
+	color:#000;
+}
+
+button, input, a{
+	font-size:inherit;
+	font-family:inherit;
+	font-weight:inherit;
+	color:#000;
+}
+
+button{
+	font-size: 90%;
+	cursor: pointer;
+	border: #ddd outset;
+	margin:-3px;
+}
+button:active{
+	border: #aaa inset;
+}
+
+input[type='text'], input[type='password'], input[type='email'],
+input[type='url']{
+	font-size:90%;
+	background: #f8f8f8;
+	padding:4px;
+	border-left:#ddd solid 9px;
+}
+
+dl{
+	margin-bottom:10px;
+}
+
+dd + dt{
+	margin-top:10px;
+}
+
+dt{
+	font-variant: small-caps;
+	font-weight: bold;
+	text-transform: lowercase;
+}
+
+li label{
+	font-size:90%;
+}
+
+.container{
+	width:14em;
+}
+
+.container.one{
+	float:left;
+	text-align:right;
+}
+
+.container.two{
+	position:absolute;
+	top:0;
+	right:0;
+}
+
+#header, #content{
+	margin:0 15em;
+}
+
+#header{
+	color: #aaa;
+}
+
+#header h1 {
+	font: 25px/15px Georgia;
+}
+
+.container.one, #content{
+	margin-top:2em;
+}
+
+#main{
+	width:60em;
+	margin:4em auto;
+	position:relative;
+}
+
+#navbar li.active{
+	list-style: disc;
+}
+
+#navbar li.active a, #navbar li:hover a{
+	color:#aaa;
+}
