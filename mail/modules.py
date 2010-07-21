@@ -11,7 +11,8 @@ class MailingListModule(Module):
 	models = (
 		MailingListModel(
 			field_name='mailing_lists',
-			limit_choices_to={'self_subscribe_enabled': True}),
+			limit_choices_to={'self_subscribe_enabled': True}
+		),
 	)
 
 

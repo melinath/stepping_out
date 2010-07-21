@@ -1,25 +1,15 @@
+from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.db.models.options import get_verbose_name as convert_camelcase
 from django.forms import Form, CheckboxSelectMultiple
-from django.forms.models import modelform_factory
+from django.forms.models import modelform_factory, inlineformset_factory, _get_foreign_key
 from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.template.defaultfilters import slugify
 from django.utils.datastructures import SortedDict
 from django.utils.text import capfirst
-from stepping_out.modules.modules import ModuleModel, ModuleMultiModel
-
-
-class FieldSet(object):
-	def __init__(self, title, opts, form):
-		self.title = title
-		self.fields = opts['fields']
-		self.form = form
-	
-	def __iter__(self):
-		for field in self.fields:
-			yield self.form[field]
+from stepping_out.modules.modules import ModuleModel, ModuleMultiModel, ModuleInlineModel
 
 
 class SectionSub(object):
@@ -69,7 +59,27 @@ class SectionSubForm(SectionSub):
 
 
 class SectionSubInline(SectionSub):
-	pass
+	def __init__(self, model):
+		self.formset_class = inlineformset_factory(User, model.model)
+		super(SectionSubInline, self).__init__(model)
+	
+	def instantiate(self, request):
+		if request.method == 'POST':
+			self.formset = self.formset_class(
+				request.POST,
+				request.FILES,
+				queryset=self.model.get_for_user(request.user)
+			)
+		else:
+			self.formset = self.formset_class(
+				queryset=self.model.get_for_user(request.user)
+			)
+	
+	def is_valid(self):
+		return self.formset.is_valid()
+	
+	def save(self, *args, **kwargs):
+		self.formset.save(*args, **kwargs)
 
 
 class SectionSubField(SectionSub):
@@ -133,32 +143,31 @@ def process_modules(modules):
 	models = {}
 	subs = []
 	base_fields = SortedDict()
-	#inline_models = SortedDict()
-	#inline_formsets = []
+	inlines = []
 	
 	for module in modules:
 		for model in module.models:
-			if not isinstance(model, ModuleModel) and not isinstance(model, ModuleMultiModel):
-				raise TypeError('%s must subclass ModuleModel or ModuleMultiModel' % 
-					(model, self.__module__))
-			
 			if model.__class__ not in models:
 				models[model.__class__] = model
 			else:
 				models[model.__class__] += model
 	
 	for model in models.values():
-		if isinstance(model, ModuleModel):
-			sub = SectionSubForm
-		#elif fields:
-		#	sub = SectionSubInline
+		if isinstance(model, ModuleInlineModel):
+			sub = SectionSubInline
+			sub = sub(model)
+			inlines.append(sub)
 		else:
-			sub = SectionSubField
-		sub = sub(model)
-		subs.append(sub)
-		base_fields.update(sub.base_fields)
+			if isinstance(model, ModuleModel):
+				sub = SectionSubForm
+			else:
+				sub = SectionSubField
+			
+			sub = sub(model)
+			subs.append(sub)
+			base_fields.update(sub.base_fields)
 	
-	return subs, base_fields
+	return subs, base_fields, inlines
 
 
 class SectionMetaclass(Form.__metaclass__):
@@ -172,7 +181,7 @@ class SectionMetaclass(Form.__metaclass__):
 		if not parents:
 			return new_cls
 		
-		new_cls.subs, new_cls.base_fields = process_modules(new_cls.modules)
+		new_cls.subs, new_cls.base_fields, new_cls.inlines = process_modules(new_cls.modules)
 		
 		default_name = capfirst(convert_camelcase(name))
 		if 'title' not in attrs:
@@ -204,12 +213,14 @@ class Section(Form):
 	def __init__(self, admin_site):
 		self.admin_site = admin_site
 	
-	def __call__(self, *args, **kwargs):
+	def __call__(self,request, *args, **kwargs):
+		# make sure fieldsets are loaded.
+		self.get_fieldsets()
 		Form.__init__(self, *args, **kwargs)
 		return self
 	
 	def __iter__(self):
-		return self.fieldsets.__iter__()
+		return self._fieldsets.__iter__()
 	
 	def get_context(self, **kwargs):
 		defaults = {
@@ -222,12 +233,10 @@ class Section(Form):
 		if not hasattr(self, '_fieldsets'):
 			fieldsets = []
 			for module in self.modules:
-				for title, opts in module.get_fieldsets():
-					fieldsets.append(FieldSet(title, opts, self))
+				fieldsets.extend(list(module.get_fieldsets(self)))
 			self._fieldsets = fieldsets
 		
 		return self._fieldsets
-	fieldsets = property(get_fieldsets)
 	
 	def has_permission(self, request):
 		if request.user.is_active and request.user.is_authenticated():
@@ -237,29 +246,30 @@ class Section(Form):
 	
 	def view(self, request):
 		if request.method == 'POST':
-			valid = []
 			invalid = []
 			
-			for sub in self.subs:
+			for sub in self.subs + self.inlines:
 				sub.instantiate(request)
-				if sub.is_valid():
-					valid.append(sub)
-				else:
+				if not sub.is_valid():
 					invalid.append(sub)
 			
 			if not invalid:
-				for sub in valid:
+				for sub in self.subs+self.inlines:
 					sub.save()
 				return HttpResponseRedirect('')
 			
-			form = self(request.POST, request.FILES)
+			form = self(request, request.POST, request.FILES)
 		else:
 			# need to set initial data from the db.
 			initial = {}
 			for sub in self.subs:
 				sub.instantiate(request)
 				initial.update(sub.initial)
-			form = self(initial=initial)
+			
+			for sub in self.inlines:
+				sub.instantiate(request)
+			
+			form = self(request, initial=initial)
 		
 		context = self.get_context(
 			form=form

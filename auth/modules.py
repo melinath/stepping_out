@@ -1,5 +1,6 @@
-from stepping_out.modules import Module, Section, site
+from stepping_out.modules import Module, InlineModule, ModuleInlineModel, Section, site
 from stepping_out.modules.defaults import UserModel
+from stepping_out.auth.models import UserEmail
 
 
 class ProfileModule(Module):
@@ -17,6 +18,16 @@ class RideModule(Module):
 	models = (
 		UserModel(['phone_number']),
 	)
+
+
+class UserEmailModel(ModuleInlineModel):
+	model = UserEmail
+
+
+class EmailModule(InlineModule):
+	models = (
+		UserEmailModel(['email']),
+		)
 
 
 #class WorkshopModule(Module):
@@ -39,6 +50,7 @@ class PreferencesSection(Section):
 	modules = [
 		ProfileModule,
 		RideModule,
+		EmailModule,
 		#WorkshopModule,
 		#PasswdModule
 	]
