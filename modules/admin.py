@@ -41,12 +41,8 @@ class ModuleAdmin(object):
 	def urls(self):
 		from django.conf.urls.defaults import patterns, url
 		
-		def wrap(view):
-			def inner(request, *args, **kwargs):
-				if not self.has_permission(request):
-					return self.admin_site.login(request, *args, **kwargs)
-				return view(request, *args, **kwargs)
-			return inner
+		def wrap(view, cacheable=False):
+			return self.admin_site.admin_view(view, cacheable)
 		
 		urlpatterns = patterns('',
 			url(r'^$', wrap(self.view),

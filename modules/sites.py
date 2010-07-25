@@ -144,6 +144,12 @@ class ModuleAdminSite(object):
 	def modules(self):
 		return self._registry
 	
+	def has_permission(self, request):
+		if request.user.is_active and request.user.is_authenticated():
+			return True
+		
+		return False
+	
 	def admin_view(self, view, cacheable=False, test=None):
 		"""
 		Decorator to apply common decorators to views for this admin.
@@ -151,10 +157,10 @@ class ModuleAdminSite(object):
 		# FIXME: prohibit caching?
 		def inner(request, *args, **kwargs):
 			if not self.has_permission(request):
-				return self.login(request)
-			return view
+				return self.login(request, *args, **kwargs)
+			return view(request, *args, **kwargs)
 		inner = csrf_protect(inner)
-		return view
+		return inner
 	
 	def get_urls(self):
 		def wrap(view, cacheable=False):

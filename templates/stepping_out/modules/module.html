@@ -4,6 +4,7 @@
 	{% if admin.title %}<h2>{{ admin.title }}</h2>{% endif %}
 	{% if admin.help_text %}{{ admin.help_text|safe }}{% endif %}
 	<form method='post' action=''>
+	{% csrf_token %}
 	{% for fieldset in fieldsets %}
 		{% if fieldset.title %}<h3>{{ fieldset.title }}</h3>{% endif %}
 		<dl>

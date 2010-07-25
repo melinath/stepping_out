@@ -10,7 +10,7 @@ class MailingListProxy(ModelProxy):
 class MailingListModule(Module):
 	verbose_name = "Mailing list subscriptions"
 	slug = 'subscriptions'
-	mailing_lists = ChoiceOfManyField(MailingListProxy)
+	mailing_lists = ChoiceOfManyField(MailingListProxy, required=False)
 
 
 class MailingListAdmin(ModuleAdmin):

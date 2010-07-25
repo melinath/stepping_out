@@ -95,6 +95,7 @@ class ChoiceOfManyValue(ProxyValue):
 		
 	def __set__(self, module_instance, value):
 		manager = self.get_backlink_manager(module_instance)
+		value = value or manager.none()
 		qs = self.get_value(module_instance)
 		total = value | qs
 		shared = value & qs
@@ -111,7 +112,10 @@ class ChoiceOfManyField(ProxyField):
 	readonly = False
 	_choices = None
 	
-	def __init__(self, model_proxy, limit_choices_to=None):
+	def __init__(self, model_proxy, limit_choices_to=None, required=True,
+				editable = True):
+		self.required = required
+		self.editable = editable
 		self.limit_choices_to = limit_choices_to
 		self.model_proxy = model_proxy
 		self.backlink_name = model_proxy.link.related_query_name()
@@ -150,7 +154,8 @@ class ChoiceOfManyField(ProxyField):
 		defaults = {
 			'queryset': self.choices,
 			'widget': forms.CheckboxSelectMultiple,
-			#'required': self.required
+			'required': self.required,
+			#'readonly': not self.editable How does django admin do this?
 		}
 		defaults.update(kwargs)
 		return form_class(**defaults)
