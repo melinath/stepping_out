@@ -1,59 +1,27 @@
-from stepping_out.modules import Module, InlineModule, ModuleInlineModel, Section, site
-from stepping_out.modules.defaults import UserModel
+from django.contrib.auth.models import User
+from stepping_out.modules import ModelProxy, Module, ProxyField, site, ModuleAdmin
 from stepping_out.auth.models import UserEmail
 
 
-class ProfileModule(Module):
-	models = (
-		UserModel(['first_name', 'last_name',]),
-	)
-	fieldsets = (
-		(None, {
-			'fields': ['first_name', 'last_name']
-		}),
-	)
+class UserProxy(ModelProxy):
+	model = User
 
 
-class RideModule(Module):
-	models = (
-		UserModel(['phone_number']),
-	)
-
-
-class UserEmailModel(ModuleInlineModel):
+class UserEmailProxy(ModelProxy):
 	model = UserEmail
+	#FIXME: actually get this kind of thing working.
 
 
-class EmailModule(InlineModule):
-	models = (
-		UserEmailModel(['email']),
-		)
-
-
-#class WorkshopModule(Module):
-#	models = (
-#		((WorkshopProfile, 'user'), ['student', 'zip']),
-#	)
-
-
-#class PasswdModule(Module):
-#	models = (
-#		(User, [('password', 'pwd')]),
-#	)
-
-
-
-class PreferencesSection(Section):
-	title = "Account Preferences"
+class UserSettingsModule(Module):
+	verbose_name = "Account preferences"
 	slug = "preferences"
 	help_text = "Here you can set all sorts of exciting profile information!"
-	modules = [
-		ProfileModule,
-		RideModule,
-		EmailModule,
-		#WorkshopModule,
-		#PasswdModule
-	]
+	first_name = ProxyField(UserProxy)
+	last_name = ProxyField(UserProxy)
 
 
-site.register(PreferencesSection)
+class UserSettingsAdmin(ModuleAdmin):
+	order = 0
+
+
+site.register(UserSettingsModule, UserSettingsAdmin)

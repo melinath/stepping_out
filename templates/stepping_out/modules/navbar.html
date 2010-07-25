@@ -1,6 +1,6 @@
 <ul id='navbar' class='module'>
-{% for section in sections %}
-	<li{% if section == form %} class='active'{% endif %}><a href='{{ section.get_absolute_url }}'>{{ section.title }}</a></li>
+{% for admin in modules.values %}
+	<li{% if admin == moduleadmin %} class='active'{% endif %}><a href='{{ admin.get_absolute_url }}'>{{ admin.verbose_name }}</a></li>
 {% empty %}
 	<li>No sections available.</li>
 {% endfor %}

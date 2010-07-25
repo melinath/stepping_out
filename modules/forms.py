@@ -1,6 +1,6 @@
-from django.forms.forms import BaseForm
+from django import forms
 from django.utils.datastructures import SortedDict
-from stepping_out.modules.proxies import ProxyField
+from stepping_out.modules.fields import ProxyField
 
 
 def get_declared_fields(bases, attrs, with_base_fields=True):
@@ -19,28 +19,28 @@ def get_declared_fields(bases, attrs, with_base_fields=True):
 	return SortedDict(fields)
 
 
-def fields_for_patch(patch):
-	return SortedDict([(f.name, f.formfield()) for f in patch._meta.field_proxies])
+def fields_for_module(module):
+	return SortedDict([(f.name, f.formfield()) for f in module._meta.field_proxies])
 
 
-class PatchFormMetaclass(type):
+class ModuleFormMetaclass(type):
 	def __new__(cls, name, bases, attrs):
 		try:
-			parents = [b for b in bases if issubclass(b, PatchForm)]
+			parents = [b for b in bases if issubclass(b, ModuleForm)]
 		except NameError:
-			# We are defining ProxyModelForm itself.
+			# We are defining ModuleForm itself.
 			parents = None
 		
-		new_class = super(PatchFormMetaclass, cls).__new__(cls, name, bases,
+		new_class = super(ModuleFormMetaclass, cls).__new__(cls, name, bases,
 			attrs)
 		if not parents:
 			return new_class
 		
 		declared_fields = get_declared_fields(bases, attrs)
-		patch = attrs.get('patch', None)
-		if patch:
-			# If there's a patch, extract fields from that.
-			fields = fields_for_patch(patch)
+		module = attrs.get('module', None)
+		if module:
+			# If there's a module, extract fields from that.
+			fields = fields_for_module(module)
 			fields.update(declared_fields)
 		else:
 			fields = declared_fields
@@ -49,5 +49,46 @@ class PatchFormMetaclass(type):
 		return new_class
 
 
-class PatchForm(BaseForm):
-	__metaclass__ = PatchFormMetaclass
+class ModuleForm(forms.BaseForm):
+	__metaclass__ = ModuleFormMetaclass
+	
+	def __init__(self, module_instance, data=None, files=None, auto_id='id_%s',
+				prefix=None, initial=None, error_class=forms.util.ErrorList,
+				label_suffix='', empty_permitted=False):
+		self.module_instance = module_instance
+		module_data = dict([
+			(f.name, f._get_val_from_obj(module_instance)) for f in module_instance._meta.field_proxies
+		])
+		
+		module_data.update(initial or {})
+		
+		defaults = {
+			'initial': module_data,
+			'data': data,
+			'files': files,
+			'auto_id': auto_id,
+			'prefix': prefix,
+			'error_class': error_class,
+			'label_suffix': label_suffix,
+			'empty_permitted': empty_permitted
+		}
+		super(ModuleForm, self).__init__(**defaults)
+	
+	def save(self):
+		opts = self.module_instance._meta
+		cleaned_data = self.cleaned_data
+		for f in opts.field_proxies:
+			if not f.name in cleaned_data:
+				continue
+			f.save_form_data(self.module_instance, cleaned_data[f.name])
+		
+		self.module_instance.save()
+
+
+def moduleform_factory(module_class, form_name=None, module_form=ModuleForm):
+	if form_name is None:
+		form_name = "%sModuleForm" % module_class.__name__
+	
+	attrs = {'module': module_class}
+	
+	return ModuleFormMetaclass(form_name, (module_form,), attrs)

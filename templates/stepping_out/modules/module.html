@@ -1,0 +1,19 @@
+{% extends 'stepping_out/modules/base.html' %}
+
+{% block content %}
+	{% if admin.title %}<h2>{{ admin.title }}</h2>{% endif %}
+	{% if admin.help_text %}{{ admin.help_text|safe }}{% endif %}
+	<form method='post' action=''>
+	{% for fieldset in fieldsets %}
+		{% if fieldset.title %}<h3>{{ fieldset.title }}</h3>{% endif %}
+		<dl>
+		{% for field in fieldset %}
+			<dt>{{ field.label_tag }}</dt>
+			<dd>{{ field }}</dd>
+			<dd>{{ field.errors }}</dd>
+		{% endfor %}
+		</dl>
+	{% endfor %}
+		<button type='submit'>Save</button>
+	</form>
+{% endblock %}

@@ -1,25 +1,20 @@
-from stepping_out.modules import ModuleMultiModel, Module, Section, site
+from stepping_out.modules import ModelProxy, Module, ChoiceOfManyField, site, ModuleAdmin
 from stepping_out.mail.models import MailingList
 
 
-class MailingListModel(ModuleMultiModel):
+class MailingListProxy(ModelProxy):
 	model = MailingList
-	related_field = 'subscribed_users'
+	related_field_name = 'subscribed_users'
 
 
 class MailingListModule(Module):
-	models = (
-		MailingListModel(
-			field_name='mailing_lists',
-			limit_choices_to={'self_subscribe_enabled': True}
-		),
-	)
+	verbose_name = "Mailing list subscriptions"
+	slug = 'subscriptions'
+	mailing_lists = ChoiceOfManyField(MailingListProxy)
 
 
-class MailingListSection(Section):
-	modules = [
-		MailingListModule
-	]
+class MailingListAdmin(ModuleAdmin):
+	order = 1
 
 
-site.register(MailingListSection)
+site.register(MailingListModule, MailingListAdmin)
