@@ -1,5 +1,21 @@
 from django.contrib.auth.models import User
-from django import forms
+from django import forms 
+from stepping_out.modules.modules import ModuleMetaclass
+from django.forms.models import inlineformset_factory, BaseInlineFormSet, ModelForm
+
+
+class BaseProxyField(object):
+	creation_counter = 0
+	
+	def __init__(self):
+		self.creation_counter = ProxyField.creation_counter
+		ProxyField.creation_counter += 1
+	
+	def _get_val_from_obj(self, module_instance):
+		raise NotImplementedError
+	
+	def save_form_data(self, module_instance, data):
+		setattr(module_instance, self.name, data) # ?
 
 
 class ProxyValue(object):
@@ -24,8 +40,7 @@ class ProxyValue(object):
 		setattr(self.get_for_user(module_instance), self.to_name, value)
 
 
-class ProxyField(object):
-	creation_counter = 0
+class ProxyField(BaseProxyField):
 	required = True
 	
 	def __init__(self, model_proxy, field_name=None):
@@ -35,14 +50,10 @@ class ProxyField(object):
 		self.field_name = field_name
 		if field_name is not None:
 			self.get_field()
-		
-		self.creation_counter = ProxyField.creation_counter
-		ProxyField.creation_counter += 1
-	
-	#def __getattr__(self, name):
-	#	return getattr(self.field, name)
+		super(ProxyField, self).__init__()
 	
 	def get_field(self):
+		"""Fetches a model fields from a model_proxy"""
 		self.field = self.model_proxy.get_field(self.field_name)
 	
 	def contribute_to_class(self, cls, name):
@@ -59,9 +70,6 @@ class ProxyField(object):
 		Return a value suitable for form field instantiation.
 		"""
 		return getattr(module_instance, self.name)
-	
-	def save_form_data(self, module_instance, data):
-		setattr(module_instance, self.name, data)
 	
 	def get_model_proxy_instance(self, module_instance):
 		return module_instance.get_model_proxy_instance(self.model_proxy)
@@ -108,7 +116,7 @@ class ChoiceOfManyValue(ProxyValue):
 				manager.remove(model)
 
 
-class ChoiceOfManyField(ProxyField):
+class ChoiceOfManyField(BaseProxyField):
 	readonly = False
 	_choices = None
 	
@@ -119,6 +127,7 @@ class ChoiceOfManyField(ProxyField):
 		self.limit_choices_to = limit_choices_to
 		self.model_proxy = model_proxy
 		self.backlink_name = model_proxy.link.related_query_name()
+		super(ChoiceOfManyField, self).__init__()
 	
 	def _apply_limiter(self, qs):
 		if self.limit_choices_to is not None:
@@ -159,3 +168,44 @@ class ChoiceOfManyField(ProxyField):
 		}
 		defaults.update(kwargs)
 		return form_class(**defaults)
+
+
+class InlineProxyValue(ProxyValue):
+	def __init__(self, name, backlink_name, proxy_field):
+		self.name = name
+		self.backlink_name = backlink_name
+		self.proxy_field = proxy_field
+		self.model_proxy = proxy_field.model_proxy
+	
+	def get_backlink_manager(self, module_instance):
+		return getattr(self.get_user(module_instance), self.backlink_name)
+	
+	def __get__(self, module_instance, owner):
+		return self.get_backlink_manager(module_instance).all()
+	
+	def __set__(self, module_instance, value):
+		raise NotImplementedError
+
+
+class InlineField(BaseProxyField):
+	def __init__(self, model_proxy, fields=None, exclude=None, extra=3,
+			fieldsets=None, formset=BaseInlineFormSet, form=ModelForm):
+		self.model_proxy = model_proxy
+		self.fields = fields
+		self.exclude = exclude
+		self.extra = extra
+		self.backlink_name = model_proxy.link.related_query_name()
+		self.formset_class = formset
+		self.form_class = form
+		self.formset = self.get_formset() 
+	
+	def get_formset(self):
+		return inlineformset_factory(User, self.model_proxy.model,
+			fields=self.fields, exclude=self.exclude, extra=self.extra,
+			formset=self.formset_class, form=self.form_class)
+	
+	def contribute_to_class(self, cls, name):
+		self.name = name
+		self.cls = cls
+		setattr(cls, name, InlineProxyValue(name, self.backlink_name, self))
+		cls._meta.add_field_proxy(self)

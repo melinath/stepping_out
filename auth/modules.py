@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
-from stepping_out.modules import ModelProxy, Module, ProxyField, site, ModuleAdmin
+from stepping_out.modules import *
 from stepping_out.auth.models import UserEmail
+from stepping_out.auth.forms import PrimaryUserEmailFormSet
 
 
 class UserProxy(ModelProxy):
@@ -9,7 +10,7 @@ class UserProxy(ModelProxy):
 
 class UserEmailProxy(ModelProxy):
 	model = UserEmail
-	#FIXME: actually get this kind of thing working.
+	related_field_name = 'user'
 
 
 class UserSettingsModule(Module):
@@ -18,6 +19,8 @@ class UserSettingsModule(Module):
 	help_text = "Here you can set all sorts of exciting profile information!"
 	first_name = ProxyField(UserProxy)
 	last_name = ProxyField(UserProxy)
+	emails = InlineField(UserEmailProxy, fields=['email'], extra=1,
+		formset=PrimaryUserEmailFormSet)
 
 
 class UserSettingsAdmin(ModuleAdmin):

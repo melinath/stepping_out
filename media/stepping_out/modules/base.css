@@ -1,5 +1,6 @@
 *{padding:0;margin:0;background:transparent;border:0;text-decoration:none;}
 ul,ol,li{list-style:none;}
+table{border-collapse:collapse;}
 
 body{
 	font:15px/20px Georgia;
@@ -35,11 +36,11 @@ dl{
 	margin-bottom:10px;
 }
 
-dd + dt{
+dd + dt, dl table{
 	margin-top:10px;
 }
 
-dt{
+dt, thead th{
 	font-variant: small-caps;
 	font-weight: bold;
 	text-transform: lowercase;
@@ -47,6 +48,12 @@ dt{
 
 li label{
 	font-size:90%;
+}
+
+th, td{
+	vertical-align: top;
+	text-align:left;
+	padding: 2px 20px 0 0;
 }
 
 .container{
@@ -62,6 +69,13 @@ li label{
 	position:absolute;
 	top:0;
 	right:0;
+}
+
+.error {
+	border-left: 9px solid;
+	color: #a00;
+	font-size: 12px;
+	text-indent: 5px;
 }
 
 #header, #content{

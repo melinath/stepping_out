@@ -9,11 +9,16 @@ class ModuleOptions(object):
 		self.module = module
 		self.model_proxies = set()
 		self.field_proxies = []
+		
+		if hasattr(module, 'model_proxy'):
+			self.model_proxies.add(module.model_proxy)
 	
 	def add_field_proxy(self, field_proxy):
 		if field_proxy not in self.field_proxies:
-			self.field_proxies.append(field_proxy)
+			if hasattr(self.module, 'model_proxy') and field_proxy.model_proxy != self.module.model_proxy:
+				raise ValueError
 			self.model_proxies.add(field_proxy.model_proxy)
+			self.field_proxies.append(field_proxy)
 
 
 class ModuleMetaclass(type):
@@ -24,11 +29,14 @@ class ModuleMetaclass(type):
 			return super_new(cls, name, bases, attrs)
 		
 		module = attrs.pop('__module__')
-		new_class = super_new(cls, name, bases, {'__module__': module})
+		try:
+			model_proxy = attrs.pop('model_proxy')
+			new_class = super_new(cls, name, bases, {'__module__': module, 'model_proxy': model_proxy})
+		except:
+			new_class = super_new(cls, name, bases, {'__module__': module})
 		new_class._meta = ModuleOptions(new_class)
 		
 		for obj_name, obj in attrs.items():
-			# FIXME: add creation counter? How does Form do it?
 			new_class.add_to_class(obj_name, obj)
 		
 		
@@ -54,7 +62,7 @@ class Module(object):
 	
 	@classmethod
 	def get_for_user(self, user):
-		# only fetch each required model instance once.
+		# only fetch each required model proxy instance once.
 		results = {}
 		for model_proxy in self._meta.model_proxies:
 			results[model_proxy] = model_proxy.get_for_user(user)
@@ -67,17 +75,21 @@ class Module(object):
 		return instance
 	
 	def __init__(self, user):
+		self.user = user
 		self.model_proxies = {}
 		self._save_funcs = set()
 		for model_proxy in self._meta.model_proxies:
 			self.model_proxies[model_proxy] = model_proxy(user)
 		
 		for field_proxy in self._meta.field_proxies:
-			self._save_funcs.add(
-				field_proxy.get_save_func(
-					self.model_proxies[field_proxy.model_proxy]
+			try:
+				self._save_funcs.add(
+					field_proxy.get_save_func(
+						self.model_proxies[field_proxy.model_proxy]
+					)
 				)
-			)
+			except AttributeError:
+				pass
 	
 	def get_model_proxy_instance(self, model_proxy_class):
 		return self.model_proxies[model_proxy_class]

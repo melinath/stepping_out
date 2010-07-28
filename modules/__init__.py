@@ -1,7 +1,7 @@
 from stepping_out.modules.modules import *
 from stepping_out.modules.models import *
-from stepping_out.modules.fields import *
 from stepping_out.modules.forms import *
+from stepping_out.modules.fields import *
 from stepping_out.modules.admin import *
 from stepping_out.modules.sites import *
 

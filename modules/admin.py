@@ -13,7 +13,10 @@ class FieldSet(object):
 	
 	def __iter__(self):
 		for field in self.fields:
-			yield self.form[field]
+			try:
+				yield self.form.formset_instances[field]
+			except KeyError:
+				yield self.form[field]
 
 
 class ModuleAdmin(object):
@@ -61,7 +64,7 @@ class ModuleAdmin(object):
 				fieldsets.append(FieldSet(form, title, opts))
 			return fieldsets
 		
-		return [FieldSet(form, None, {'fields': form.fields})]
+		return [FieldSet(form, None, {'fields': form.all_fields.keys()})]
 	
 	def get_context(self):
 		context = self.admin_site.get_context()
