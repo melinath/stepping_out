@@ -63,11 +63,13 @@ class ModuleFormMetaclass(type):
 
 class ModuleForm(forms.BaseForm):
 	__metaclass__ = ModuleFormMetaclass
-	formset_instances = {}
 	
 	def __init__(self, module_instance, data=None, files=None, auto_id='id_%s',
 				prefix=None, initial=None, error_class=forms.util.ErrorList,
 				label_suffix='', empty_permitted=False):
+		self._messages = []
+		self.formset_instances = {}
+		
 		self.module_instance = module_instance
 		module_data = dict([
 			(f.name, f._get_val_from_obj(module_instance))
@@ -89,7 +91,7 @@ class ModuleForm(forms.BaseForm):
 		super(ModuleForm, self).__init__(**defaults)
 		for name, formset in self.formsets.items():
 			self.formset_instances[name] = formset(data, files, module_instance.user
-				)#initial=initial))
+				)#initial=initial)) ??
 	
 	def is_valid(self):
 		for formset in self.formset_instances.values():
@@ -109,6 +111,16 @@ class ModuleForm(forms.BaseForm):
 		
 		for formset in self.formset_instances.values():
 			formset.save()
+	
+	def add_message(self, level, msg):
+		self._messages.append((level, msg))
+	
+	@property
+	def messages(self):
+		messages = self._messages
+		for formset in self.formset_instances.values():
+			messages.extend(formset.messages)
+		return messages
 
 
 def moduleform_factory(module_class, form_name=None, module_form=ModuleForm):

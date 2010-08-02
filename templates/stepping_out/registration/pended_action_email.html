@@ -1,0 +1,3 @@
+<p>Hi! {{ message }} If you're sure about this, use the following link to confirm.</p>
+<p><a href='{{ protocol }}://{{ domain }}{% url stepping_out.auth.views.confirm_pended_action code=code %}'>{{ protocol }}://{{ domain }}{% url stepping_out.auth.views.confirm_pended_action code=code %}</a></p>
+<p>If you think you've received this email in error, please email {{ admin_email }}.</p>

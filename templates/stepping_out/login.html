@@ -1,6 +1,10 @@
-{% extends 'stepping_out/modules/base.html' %}
+{% extends 'stepping_out/base_site.html' %}
 
-{% block navbar %}{% endblock %}
+{% block container_two %}
+<ul>
+	<li><a href='{% url stepping_out_admin_password_reset %}'>Forgot your password?</a></li>
+</ul>
+{% endblock %}
 
 {% block content %}
 {% if message %}<p class='error'>{{ message }}</p>{% endif %}

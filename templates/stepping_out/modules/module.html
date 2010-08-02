@@ -1,5 +1,5 @@
 {% extends 'stepping_out/modules/base.html' %}
-
+{% comment %}I need a way to get the number of fields. Should probably add a fields thing to the formset. Note: Django uses helpers for this. Should I?{% endcomment %}
 {% block content %}
 	{% if admin.title %}<h2>{{ admin.title }}</h2>{% endif %}
 	{% if admin.help_text %}{{ admin.help_text|safe }}{% endif %}
@@ -26,6 +26,15 @@
 					{% if formset.radio_renderer %}<th>Primary</th>{% endif %}
 					</tr>
 				</thead>
+				{% if formset.help_text %}
+				<tfoot>
+					<tr>
+						{% with formset.forms|first as form %}<td colspan='{% if formset.radio_renderer %}{{ form.visible_fields|length|add:"1" }}{% else %}{{ form.visible_fields|length }}{% endif %}'>
+							<p class='help'>{{ formset.help_text }}</p>
+						</td>{% endwith %}
+					</tr>
+				</tfoot>
+				{% endif %}
 				<tbody>
 				{% for form in formset.forms %}
 					{% if form.non_field_errors %}
@@ -57,7 +66,8 @@
 			{% else %}
 				<dt>{{ field.label_tag }}</dt>
 				<dd>{{ field }}</dd>
-				{% if field.errors %}<dd>{{ field.errors }}</dd>{% endif %}
+				{% if field.errors %}<dd class='error'>{{ field.errors }}</dd>{% endif %}
+				{% if field.help_text %}<dd class='help_text'>{{ field.help_text }}{% endif %}
 			{% endif %}
 		{% endfor %}
 		</dl>

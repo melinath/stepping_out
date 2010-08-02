@@ -3,6 +3,7 @@ from stepping_out.modules import moduleform_factory
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
+from django.contrib import messages
 
 
 class FieldSet(object):
@@ -77,12 +78,16 @@ class ModuleAdmin(object):
 		
 		return False
 	
-	def respond(self):
+	def redirect(self):
 		"""
 		For some reason, if this is not included as a method, django can't find
 		HttpResponseRedirect...
 		"""
 		return HttpResponseRedirect('')
+	
+	def add_messages(self, request, msgs):
+		for level, msg in msgs:
+			messages.add_message(request, level, msg, fail_silently=False)
 	
 	def view(self, request):
 		module = self.module_class(request.user)
@@ -93,10 +98,8 @@ class ModuleAdmin(object):
 			
 			if form.is_valid():
 				form.save()
-				return self.respond()
-				#import pdb
-				#pdb.set_trace()
-				#return HttpReponseRedirect('')
+				self.add_messages(request, form.messages)
+				return self.redirect()
 		else:
 			form = form_class(module)
 		

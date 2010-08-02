@@ -1,0 +1,38 @@
+{% spaceless %}
+
+{% load staticmedia %}
+
+{% endspaceless %}<!DOCTYPE html>
+
+<html>
+
+<head>
+	<title>{% block title %}Stepping Out User Admin{% endblock %}</title>
+	<link rel='stylesheet' type='text/css' href='{% mediaurl "stepping_out/modules/base.css" %}' />
+</head>
+
+<body>
+	<div id='main'>
+		<div id='header'>
+			<h1>{% block admin_header %}<a href='{% url stepping_out_admin_root %}'>Stepping Out User Admin</a>{% endblock %}</h1>
+		</div>
+		<div class='container one'>
+			{% block container_one %}{% endblock %}
+		</div>
+		<div class='container two'>
+			{% block container_two %}{% include 'stepping_out/modules/logged_in.html' %}{% endblock %}
+		</div>
+		<div id='content'>
+			{% if messages %}
+			<ul class='messages'>
+				{% for message in messages %}
+				<li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+				{% endfor %}
+			</ul>
+			{% endif %}
+			{% block content %}{% endblock %}
+		</div>
+	</div>
+</body>
+
+</html>

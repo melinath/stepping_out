@@ -20,7 +20,7 @@ class UserSettingsModule(Module):
 	first_name = ProxyField(UserProxy)
 	last_name = ProxyField(UserProxy)
 	emails = InlineField(UserEmailProxy, fields=['email'], extra=1,
-		formset=PrimaryUserEmailFormSet)
+		formset=PrimaryUserEmailFormSet, help_text="Email sent to a mailing list will be accepted as from you for any of your emails. You will receive email from mailing lists at your primary address.")
 
 
 class UserSettingsAdmin(ModuleAdmin):

@@ -33,5 +33,14 @@ class TermAdmin(admin.ModelAdmin):
 	form = TermAdminForm
 
 
+class PendConfirmationDataInline(admin.TabularInline):
+	model = PendConfirmationData
+
+
+class PendConfirmationAdmin(admin.ModelAdmin):
+	inlines = [PendConfirmationDataInline]
+
+
 admin.site.register(OfficerPosition, OfficerPositionAdmin)
 admin.site.register(Term, TermAdmin)
+admin.site.register(PendConfirmation, PendConfirmationAdmin)

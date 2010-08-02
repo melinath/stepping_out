@@ -2,6 +2,7 @@ from django.conf.urls.defaults import patterns, include, url
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -96,10 +97,7 @@ class OrderedDict(SortedDict):
 		self.sorted = True
 
 
-class LoginForm(forms.Form):
-	this_is_the_login_form = forms.BooleanField(widget=forms.HiddenInput, initial=True)
-	username = forms.CharField(max_length=30)
-	password = forms.CharField(max_length=128, widget=forms.PasswordInput)
+LoginForm = type('LoginForm', (AuthenticationForm,), {LOGIN_FORM_KEY: forms.BooleanField(widget=forms.HiddenInput, initial=True)})
 
 
 class AlreadyRegistered(Exception):
@@ -112,8 +110,8 @@ class NotRegistered(KeyError):
 
 class ModuleAdminSite(object):
 	url_prefix = 'stepping_out_admin'
-	login_template = 'stepping_out/modules/login.html'
-	logout_template = 'stepping_out/modules/logout.html'
+	login_template = 'stepping_out/login.html'
+	logout_template = 'stepping_out/logout.html'
 	home_template = 'stepping_out/modules/home.html'
 	
 	def __init__(self):
@@ -170,6 +168,20 @@ class ModuleAdminSite(object):
 			url(r'^$', wrap(self.home), name='%s_root' % self.url_prefix),
 			url(r'^logout/$', self.logout,
 				name='%s_logout' % self.url_prefix),
+			url(r'^confirm/(?P<code>[\w-]+)$', 'stepping_out.auth.views.confirm_pended_action',
+				name='%s_pended_action_confirm' % self.url_prefix),
+			url(r'^reset_password/$', 'django.contrib.auth.views.password_reset',
+				{'template_name': 'stepping_out/registration/password_reset_form.html'},
+				name='%s_password_reset' % self.url_prefix),
+			url(r'^reset_password/done/?$', 'django.contrib.auth.views.password_reset_done',
+				{'template_name': 'stepping_out/registration/password_reset_done.html'},
+				name='%s_password_reset_done' % self.url_prefix),
+			url(r'^reset_passord/complete/?$', 'django.contrib.auth.views.password_reset_complete',
+				{'template_name': 'stepping_out/registration/password_reset_complete.html'},
+				name='%s_password_reset_complete' % self.url_prefix),
+			url(r'^reset_password/(?P<uidb36>\w+)/(?P<token>[^/]+)$', 'django.contrib.auth.views.password_reset_confirm',
+				{'template_name': 'stepping_out/registration/password_reset_confirm.html'},
+				name='%s_password_reset_confirm' % self.url_prefix)
 		)
 		
 		for admin in self._registry.values():

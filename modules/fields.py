@@ -7,9 +7,14 @@ from django.forms.models import inlineformset_factory, BaseInlineFormSet, ModelF
 class BaseProxyField(object):
 	creation_counter = 0
 	
-	def __init__(self):
+	def __init__(self, model_proxy, required=True, editable=True, help_text=None):
 		self.creation_counter = ProxyField.creation_counter
 		ProxyField.creation_counter += 1
+		
+		self.model_proxy = model_proxy
+		self.required = required
+		self.editable = editable
+		self.help_text = help_text
 	
 	def _get_val_from_obj(self, module_instance):
 		raise NotImplementedError
@@ -43,14 +48,12 @@ class ProxyValue(object):
 class ProxyField(BaseProxyField):
 	required = True
 	
-	def __init__(self, model_proxy, field_name=None):
-		# Proxy should be a ModelProxy class. field_name is the name of the
-		# field on the actual model.
-		self.model_proxy = model_proxy
+	def __init__(self, model_proxy, required=True,
+				editable=True, help_text=None, field_name=None):
+		super(ProxyField, self).__init__(model_proxy, required, editable)
 		self.field_name = field_name
 		if field_name is not None:
 			self.get_field()
-		super(ProxyField, self).__init__()
 	
 	def get_field(self):
 		"""Fetches a model fields from a model_proxy"""
@@ -120,14 +123,12 @@ class ChoiceOfManyField(BaseProxyField):
 	readonly = False
 	_choices = None
 	
-	def __init__(self, model_proxy, limit_choices_to=None, required=True,
-				editable = True):
-		self.required = required
-		self.editable = editable
+	def __init__(self, model_proxy, required=True,
+				editable = True, help_text=None, limit_choices_to=None):
+		super(ChoiceOfManyField, self).__init__(model_proxy, required, editable, help_text)
 		self.limit_choices_to = limit_choices_to
 		self.model_proxy = model_proxy
 		self.backlink_name = model_proxy.link.related_query_name()
-		super(ChoiceOfManyField, self).__init__()
 	
 	def _apply_limiter(self, qs):
 		if self.limit_choices_to is not None:
@@ -188,16 +189,18 @@ class InlineProxyValue(ProxyValue):
 
 
 class InlineField(BaseProxyField):
-	def __init__(self, model_proxy, fields=None, exclude=None, extra=3,
-			fieldsets=None, formset=BaseInlineFormSet, form=ModelForm):
-		self.model_proxy = model_proxy
+	def __init__(self, model_proxy, required=True, editable=True, help_text=None,
+			fields=None, exclude=None, extra=3, fieldsets=None,
+			formset=BaseInlineFormSet, form=ModelForm):
+		super(InlineField, self).__init__(model_proxy, required, editable, help_text)
 		self.fields = fields
 		self.exclude = exclude
 		self.extra = extra
 		self.backlink_name = model_proxy.link.related_query_name()
 		self.formset_class = formset
 		self.form_class = form
-		self.formset = self.get_formset() 
+		self.formset = self.get_formset()
+		self.formset.help_text = self.help_text
 	
 	def get_formset(self):
 		return inlineformset_factory(User, self.model_proxy.model,
