@@ -4,6 +4,7 @@ from stepping_out.modules.forms import *
 from stepping_out.modules.fields import *
 from stepping_out.modules.admin import *
 from stepping_out.modules.sites import *
+from stepping_out.modules.defaults import *
 
 
 def autodiscover():

@@ -1,6 +1,6 @@
 from django.conf.urls.defaults import patterns, include, url
 from django.contrib.admin.sites import AdminSite
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.http import HttpResponseRedirect
@@ -134,7 +134,7 @@ class ModuleAdminSite(object):
 	def get_module(self, slug):
 		for module in self._registry:
 			if module.slug == slug:
-				return module
+				return module, self._registry[module]
 		
 		raise NotRegistered("Module with slug '%s' not found in registry")
 	
@@ -170,23 +170,23 @@ class ModuleAdminSite(object):
 				name='%s_logout' % self.url_prefix),
 			url(r'^confirm/(?P<code>[\w-]+)$', 'stepping_out.auth.views.confirm_pended_action',
 				name='%s_pended_action_confirm' % self.url_prefix),
-			url(r'^reset_password/$', 'django.contrib.auth.views.password_reset',
+			url(r'^password/reset/$', 'django.contrib.auth.views.password_reset',
 				{'template_name': 'stepping_out/registration/password_reset_form.html'},
 				name='%s_password_reset' % self.url_prefix),
-			url(r'^reset_password/done/?$', 'django.contrib.auth.views.password_reset_done',
+			url(r'^password/reset/done/?$', auth_views.password_reset_done,
 				{'template_name': 'stepping_out/registration/password_reset_done.html'},
 				name='%s_password_reset_done' % self.url_prefix),
-			url(r'^reset_passord/complete/?$', 'django.contrib.auth.views.password_reset_complete',
+			url(r'^password/reset/complete/?$', auth_views.password_reset_complete,
 				{'template_name': 'stepping_out/registration/password_reset_complete.html'},
 				name='%s_password_reset_complete' % self.url_prefix),
-			url(r'^reset_password/(?P<uidb36>\w+)/(?P<token>[^/]+)$', 'django.contrib.auth.views.password_reset_confirm',
+			url(r'^password/reset/(?P<uidb36>\w+)/(?P<token>[^/]+)$', auth_views.password_reset_confirm,
 				{'template_name': 'stepping_out/registration/password_reset_confirm.html'},
 				name='%s_password_reset_confirm' % self.url_prefix)
 		)
 		
 		for admin in self._registry.values():
 			urlpatterns += patterns('',
-				url(r'^%s/$' % admin.slug, include(admin.urls)),
+				url(r'^%s/' % admin.slug, include(admin.urls)),
 			)
 		
 		return urlpatterns
@@ -200,7 +200,7 @@ class ModuleAdminSite(object):
 	
 	def home(self, request):
 		try:
-			return HttpResponseRedirect(self.get_module('home').absolute_url)
+			return HttpResponseRedirect(self.get_module('home')[1].absolute_url)
 		except NotRegistered:
 			return render_to_response(
 				self.home_template,

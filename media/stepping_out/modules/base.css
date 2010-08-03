@@ -14,6 +14,7 @@ button, input, a{
 	color:#000;
 }
 #content a{text-decoration:underline;}
+#navbar a{display:block;width:100%;height:100%}
 a:hover{color:#aaa;}
 
 button{
@@ -41,7 +42,7 @@ input[type=url][readonly=readonly]{
 	background: #ddd;
 }
 
-dl{
+p, dl{
 	margin-bottom:10px;
 }
 
@@ -100,7 +101,7 @@ th, td{
 #content h1{
 	color: #555;
 	font:20px/15px Georgia;
-	margin-bottom:15px;
+	margin-bottom:20px;
 }
 
 .container.one, #content{
