@@ -1,0 +1,31 @@
+{% extends 'stepping_out/base_site.html' %}
+
+{% block content %}
+<form action='' method='post'>
+<dl>
+{% for field in form %}
+	<dt>{{ field.label_tag }}</dt>
+	<dd>{{ field }}</dt>
+	{% if field.errors %}
+	{% for error in field.errors %}
+	<dd class='error'>{{ error }}</dd>
+	{% endfor %}
+	{% endif %}
+	{% if field.help_text %}<dd class='help'>{{ field.help_text }}</dd>{% endif %}
+{% endfor %}
+	<dt>{{ humanity_form.get_question }}</dt>
+	<dd>{{ humanity_form.question }}{{ humanity_form.answer }}</dd>
+	{% if humanity_form.question.errors or humanity_form.answer.errors %}
+	<dd>
+		<ul>
+		{% for error in humanity_form.question.errors|add:humanity_form.answer.errors %}
+			<li class='error'>{{ error }}</li>
+		{% endfor %}
+		</ul>
+	</dd>
+	{% endif %}
+	<dd class='help'>{{ humanity_form.answer.help_text }}</dd>
+</dl>
+<p><button type='submit'>Create my account!</button></p>
+</form>
+{% endblock %}

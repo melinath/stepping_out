@@ -38,7 +38,7 @@
 				<tbody>
 				{% for form in formset.forms %}
 					{% if form.non_field_errors %}
-					<tr><td colspan="{{ form.fields|length }}" class='errors'>{{ form.non_field_errors }}</td></tr>
+					<tr><td colspan='{% if formset.radio_renderer %}{{ form.visible_fields|length|add:"1" }}{% else %}{{ form.visible_fields|length }}{% endif %}' class='errors'>{{ form.non_field_errors }}</td></tr>
 					{% endif %}
 					<tr>
 						{% for field in form.hidden_fields %}
@@ -59,6 +59,17 @@
 							<td>{{ form.primary_widget.tag }}</td>
 						{% endif %}
 					</tr>
+					{% comment %}
+					This section opens a new can of UI worms that I want closed for now.
+					
+					{% if form.instance in formset.pending_deletion %}
+					<tr>
+						<td colspan='{% if formset.radio_renderer %}{{ form.visible_fields|length|add:"1" }}{% else %}{{ form.visible_fields|length }}{% endif %}'>
+							<p class='pending'>Pending deletion</p>
+						</td>
+					</tr>
+					{% endif %}
+					{% endcomment %}
 				{% endfor %}
 				</tbody>
 			</table>

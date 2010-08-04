@@ -1,5 +1,10 @@
 {% extends 'stepping_out/base_site.html' %}
 
 {% block content %}
+	{% if pend %}
 		<p>All right! It's done!</p>
+	{% else %}
+		<p>Sorry, but I couldn't find anything here. Your link may have expired;
+		try requesting a new one.</p>
+	{% endif %}
 {% endblock %}

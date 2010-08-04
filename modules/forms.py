@@ -89,9 +89,8 @@ class ModuleForm(forms.BaseForm):
 			'empty_permitted': empty_permitted
 		}
 		super(ModuleForm, self).__init__(**defaults)
-		for name, formset in self.formsets.items():
-			self.formset_instances[name] = formset(data, files, module_instance.user
-				)#initial=initial)) ??
+		for name, formset_class in self.formsets.items():
+			self.formset_instances[name] = formset_class(data, files, module_instance.user)
 	
 	def is_valid(self):
 		for formset in self.formset_instances.values():

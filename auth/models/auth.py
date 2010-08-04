@@ -112,6 +112,7 @@ class PendConfirmation(models.Model):
 	object_id = PositiveIntegerField(blank=True, null=True)
 	item = GenericForeignKey()
 	action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+	timestamp = models.DateTimeField(auto_now_add=True)
 	
 	def __unicode__(self):
 		action = dict(self._meta.get_field('action').choices)[self.action]
@@ -137,6 +138,7 @@ class PendConfirmation(models.Model):
 			setattr(instance, kv.key, kv.value)
 		
 		if self.action == ADD_NEW:
+			# FIXME: Validate the model I've created!
 			instance.save()
 		elif self.action == DELETE:
 			instance.delete()

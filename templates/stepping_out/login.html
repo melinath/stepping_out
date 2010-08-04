@@ -1,8 +1,11 @@
 {% extends 'stepping_out/base_site.html' %}
 
+{% block container_one %}{% endblock %}
+
 {% block container_two %}
 <ul>
 	<li><a href='{% url stepping_out_admin_password_reset %}'>Forgot your password?</a></li>
+	<li><a href='{% url stepping_out_admin_account_create %}'>Create an account</a></li>
 </ul>
 {% endblock %}
 

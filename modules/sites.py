@@ -3,6 +3,7 @@ from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import authenticate, login, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
+from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -10,6 +11,7 @@ from django.utils.datastructures import SortedDict
 from django.utils.translation import ugettext_lazy, ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
+from stepping_out.auth.forms import PendUserCreationForm, TestHumanityForm
 from stepping_out.modules.admin import ModuleAdmin
 from stepping_out.modules.modules import Module
 from django import forms
@@ -113,6 +115,8 @@ class ModuleAdminSite(object):
 	login_template = 'stepping_out/login.html'
 	logout_template = 'stepping_out/logout.html'
 	home_template = 'stepping_out/modules/home.html'
+	account_create_template = 'stepping_out/registration/account_create.html'
+	account_create_done_template = 'stepping_out/registration/account_create_done.html'
 	
 	def __init__(self):
 		self._registry = OrderedDict(key=lambda t: t[1].order)
@@ -169,6 +173,7 @@ class ModuleAdminSite(object):
 			url(r'^logout/$', self.logout,
 				name='%s_logout' % self.url_prefix),
 			url(r'^confirm/(?P<code>[\w-]+)$', 'stepping_out.auth.views.confirm_pended_action',
+				{'extra_context': self.get_context()},
 				name='%s_pended_action_confirm' % self.url_prefix),
 			url(r'^password/reset/$', 'django.contrib.auth.views.password_reset',
 				{'template_name': 'stepping_out/registration/password_reset_form.html'},
@@ -181,7 +186,9 @@ class ModuleAdminSite(object):
 				name='%s_password_reset_complete' % self.url_prefix),
 			url(r'^password/reset/(?P<uidb36>\w+)/(?P<token>[^/]+)$', auth_views.password_reset_confirm,
 				{'template_name': 'stepping_out/registration/password_reset_confirm.html'},
-				name='%s_password_reset_confirm' % self.url_prefix)
+				name='%s_password_reset_confirm' % self.url_prefix),
+			url(r'^create/$', self.account_create, name='%s_account_create' % self.url_prefix),
+			url(r'^create/done/$', self.account_create_done, name='%s_account_create_done' % self.url_prefix)
 		)
 		
 		for admin in self._registry.values():
@@ -246,7 +253,7 @@ class ModuleAdminSite(object):
 			return self.display_login_form(request, message)
 		else:
 			request.session.delete_test_cookie()
-
+		
 		# Check the password.
 		username = request.POST.get('username', None)
 		password = request.POST.get('password', None)
@@ -269,7 +276,7 @@ class ModuleAdminSite(object):
 
 		# The user data is correct; log in the user in and continue.
 		else:
-			if user.is_active and user.is_staff:
+			if user.is_active:
 				login(request, user)
 				return HttpResponseRedirect(request.get_full_path())
 			else:
@@ -282,5 +289,28 @@ class ModuleAdminSite(object):
 		if self.logout_template is not None:
 			defaults['template_name'] = self.logout_template
 		return logout(request, **defaults)
+	
+	def account_create(self, request):
+		if request.method == 'POST':
+			form = PendUserCreationForm(request.POST)
+			humanity_form = TestHumanityForm(request.POST)
+			if form.is_valid():
+				form.save()
+				# FIXME: make a generic "All right, it's done!" view.
+				# Or maybe handle it with messages. Still, works for now.
+				return HttpResponseRedirect(reverse(self.account_create_done))
+		else:
+			form = PendUserCreationForm()
+			humanity_form = TestHumanityForm()
+		
+		c = {
+			'form': form,
+			'humanity_form': humanity_form
+		}
+		return render_to_response(self.account_create_template, c,
+			context_instance=RequestContext(request))
+	
+	def account_create_done(self, request):
+		return render_to_response(self.account_create_done_template, context_instance=RequestContext(request))
 
 site = ModuleAdminSite()

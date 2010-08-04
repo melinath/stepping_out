@@ -69,6 +69,9 @@ class ModuleAdmin(object):
 	
 	def get_context(self):
 		context = self.admin_site.get_context()
+		context.update({
+			'admin': self
+		})
 		# here's where I would add fieldsets?
 		return context
 	
@@ -106,7 +109,6 @@ class ModuleAdmin(object):
 		fieldsets = self.get_fieldsets(form)
 		context = self.get_context()
 		context.update({
-			'admin': self,
 			'form': form,
 			'fieldsets': fieldsets
 		})

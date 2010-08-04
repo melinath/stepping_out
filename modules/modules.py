@@ -2,6 +2,7 @@ from itertools import izip
 from django.db.models.options import get_verbose_name as convert_camelcase
 from django.template.defaultfilters import slugify
 from django.utils.text import capfirst
+from bisect import bisect
 
 
 class ModuleOptions(object):
@@ -18,7 +19,7 @@ class ModuleOptions(object):
 			if hasattr(self.module, 'model_proxy') and field_proxy.model_proxy != self.module.model_proxy:
 				raise ValueError
 			self.model_proxies.add(field_proxy.model_proxy)
-			self.field_proxies.append(field_proxy)
+			self.field_proxies.insert(bisect(self.field_proxies, field_proxy), field_proxy)
 
 
 class ModuleMetaclass(type):

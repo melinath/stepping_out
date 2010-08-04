@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
-from django import forms 
+from django import forms
+from stepping_out.auth.forms import RequiredInlineFormSet
 from stepping_out.modules.modules import ModuleMetaclass
-from django.forms.models import inlineformset_factory, BaseInlineFormSet, ModelForm
+from django.forms.models import inlineformset_factory, ModelForm
 
 
 class BaseProxyField(object):
@@ -21,6 +22,10 @@ class BaseProxyField(object):
 	
 	def save_form_data(self, module_instance, data):
 		setattr(module_instance, self.name, data) # ?
+	
+	def __cmp__(self, other):
+		# Needed because bisect doesn't take a comparison function. cp. django Field
+		return cmp(self.creation_counter, other.creation_counter)
 
 
 class ProxyValue(object):
@@ -191,7 +196,7 @@ class InlineProxyValue(ProxyValue):
 class InlineField(BaseProxyField):
 	def __init__(self, model_proxy, required=True, editable=True, help_text=None,
 			fields=None, exclude=None, extra=3, fieldsets=None,
-			formset=BaseInlineFormSet, form=ModelForm):
+			formset=RequiredInlineFormSet, form=ModelForm):
 		super(InlineField, self).__init__(model_proxy, required, editable, help_text)
 		self.fields = fields
 		self.exclude = exclude
@@ -203,9 +208,11 @@ class InlineField(BaseProxyField):
 		self.formset.help_text = self.help_text
 	
 	def get_formset(self):
-		return inlineformset_factory(User, self.model_proxy.model,
+		formset = inlineformset_factory(User, self.model_proxy.model,
 			fields=self.fields, exclude=self.exclude, extra=self.extra,
 			formset=self.formset_class, form=self.form_class)
+		formset.required = self.required
+		return formset
 	
 	def contribute_to_class(self, cls, name):
 		self.name = name
