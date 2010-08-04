@@ -36,7 +36,8 @@ class MailingListAdmin(admin.ModelAdmin):
         ('Options', {
             'fields' : (
                 'who_can_post',
-                'self_subscribe_enabled'
+                'self_subscribe_enabled',
+                'help_text'
             )
         }),
         ('Subscribers', {

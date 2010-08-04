@@ -150,10 +150,11 @@ class ChoiceOfManyField(BaseProxyField):
 		return [model.pk for model in getattr(module_instance, self.name)]
 	
 	def get_choices(self):
-		if self._choices is None:
-			qs = self.model_proxy.model._default_manager.all()
-			self._choices = self._apply_limiter(qs)
-		return self._choices
+		if self._choices is not None:
+			return self._choices
+		
+		qs = self.model_proxy.model._default_manager.all()
+		return self._apply_limiter(qs)
 	choices = property(get_choices)
 	
 	def contribute_to_class(self, cls, name):
@@ -165,10 +166,10 @@ class ChoiceOfManyField(BaseProxyField):
 	def get_save_func(self, model_proxy_instance):
 		return model_proxy_instance.user.save
 	
-	def formfield(self, form_class=forms.models.ModelMultipleChoiceField, **kwargs):
+	def formfield(self, form_class=forms.models.ModelMultipleChoiceField, widget=forms.CheckboxSelectMultiple, **kwargs):
 		defaults = {
 			'queryset': self.choices,
-			'widget': forms.CheckboxSelectMultiple,
+			'widget': widget,
 			'required': self.required,
 			#'readonly': not self.editable How does django admin do this?
 		}

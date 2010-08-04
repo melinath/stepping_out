@@ -83,11 +83,12 @@ class MailingList(models.Model):
 	#	DEFAULT_SITE = Site.objects.get_current()
 	#except DatabaseError:
 	DEFAULT_SITE = None
+	objects = MailingListManager()
 	
 	name = models.CharField(max_length=50)
 	address = models.CharField(max_length=100, validators=[EmailNameValidator()])
 	site = models.ForeignKey(Site, verbose_name="@", default=DEFAULT_SITE)
-	objects = MailingListManager()
+	help_text = models.TextField(verbose_name='description')
 	
 	subscribed_users = models.ManyToManyField(
 		User,

@@ -1,8 +1,9 @@
 from stepping_out.auth.forms import PrimaryUserEmailFormSet
 from stepping_out.auth.models import UserEmail
+from stepping_out.mail.fields import MailingListChoiceOfManyField
 from stepping_out.mail.models import MailingList
 from stepping_out.modules.admin import ModuleAdmin
-from stepping_out.modules.fields import ChoiceOfManyField, ProxyField, InlineField
+from stepping_out.modules.fields import ProxyField, InlineField
 from stepping_out.modules.models import ModelProxy
 from stepping_out.modules.modules import Module
 from stepping_out.modules.sites import site
@@ -106,7 +107,7 @@ class UserSettingsAdmin(ModuleAdmin):
 class MailingListModule(Module):
 	verbose_name = "Mailing list subscriptions"
 	slug = 'subscriptions'
-	mailing_lists = ChoiceOfManyField(MailingListProxy, required=False)
+	mailing_lists = MailingListChoiceOfManyField(MailingListProxy, required=False)
 
 
 class MailingListAdmin(ModuleAdmin):

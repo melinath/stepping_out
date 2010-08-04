@@ -307,10 +307,11 @@ class ModuleAdminSite(object):
 			'form': form,
 			'humanity_form': humanity_form
 		}
+		c.update(self.get_context())
 		return render_to_response(self.account_create_template, c,
 			context_instance=RequestContext(request))
 	
 	def account_create_done(self, request):
-		return render_to_response(self.account_create_done_template, context_instance=RequestContext(request))
+		return render_to_response(self.account_create_done_template, self.get_context(), context_instance=RequestContext(request))
 
 site = ModuleAdminSite()
