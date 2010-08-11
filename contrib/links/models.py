@@ -12,11 +12,6 @@ class Category(models.Model):
 	)
 	description = models.TextField(blank=True)
 	
-	class Meta:
-		verbose_name_plural='categories'
-		ordering = ('name',)
-		app_label = 'stepping_out'
-	
 	def parent_name(self):
 		try:
 			return self.parent.name
@@ -43,6 +38,11 @@ class Category(models.Model):
 	def save(self):
 		self.check_parentage()
 		super(Category, self).save()
+	
+	class Meta:
+		verbose_name_plural='categories'
+		ordering = ('name',)
+		app_label = 'links'
 
 class Link(models.Model):
 	uid = models.CharField(max_length=200, editable=False)
@@ -58,7 +58,7 @@ class Link(models.Model):
 		return self.name
 	
 	class Meta:
-		app_label = 'stepping_out'
+		app_label = 'links'
 
 
 class LinkMetaInfo(models.Model):
@@ -78,7 +78,7 @@ class LinkMetaInfo(models.Model):
 		return '%s: %s' % (self.category.__unicode__(), self.link.__unicode__())
 	
 	class Meta:
-		app_label = 'stepping_out'
+		app_label = 'links'
 
 
 """

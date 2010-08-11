@@ -1,30 +1,45 @@
-"""
-Essentially, pull everything together here and define the actual User admin.
-"""
-
-
-from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserChangeForm
-from stepping_out.auth.admin.auth import OfficerPositionInline
-from stepping_out.auth.admin.mail import UserEmailInline
-from stepping_out.auth.admin.workshops import WorkshopProfileInline, HousingProfileInline, HousingPreferencesProfileInline
+from django.contrib.auth.models import User
+from django import forms
+from stepping_out.auth.models import *
 from stepping_out.auth.widgets import SelectOther, AdminEmailInputWidget
-from stepping_out.auth.validators import UserEmailValidator
-from django.utils.translation import ugettext_lazy as _
-from django.core.validators import validate_email
+from stepping_out.mail.admin import UserEmailInline
+from stepping_out.mail.validators import UserEmailValidator
 
 
-USER_INLINES = [
-	UserEmailInline,
-	OfficerPositionInline,
-	WorkshopProfileInline,
-	HousingProfileInline,
-	HousingPreferencesProfileInline
-]
 COLLAPSE_CLOSED_CLASSES = ('collapse', 'collapse-closed', 'closed',)
+
+
+class OfficerPositionInline(admin.TabularInline):
+	model = OfficerUserMetaInfo
+	filter_horizontal = ('terms',)
+	verbose_name = 'officer position'
+	verbose_name_plural = 'officer positions'
+	extra = 1
+	classes = COLLAPSE_CLOSED_CLASSES
+
+
+class OfficerPositionAdmin(admin.ModelAdmin):
+	list_editable = ['order']
+	list_display = ['name', 'order'] 
+
+
+class TermAdminForm(forms.ModelForm):
+	class Meta:
+		model = Term
+	
+	def clean_end(self):
+		if(self.cleaned_data['end']<self.cleaned_data['start']):
+			raise forms.ValidationError('A term cannot end before it starts!')
+			
+		return self.cleaned_data['end']
+
+
+class TermAdmin(admin.ModelAdmin):
+	list_display = ['name', 'start', 'end']
+	form = TermAdminForm
 
 
 class SteppingOutUserAdminForm(UserChangeForm):
@@ -52,6 +67,12 @@ class SteppingOutUserAdminForm(UserChangeForm):
 		#if commit: - should this be deferred somehow? The admin uses commit=False
 		email = instance.emails.get_or_create(email=instance.email)
 		return instance
+
+
+USER_INLINES = [
+	UserEmailInline,
+	OfficerPositionInline
+]
 
 
 class SteppingOutUserAdmin(UserAdmin):
@@ -83,5 +104,16 @@ class SteppingOutUserAdmin(UserAdmin):
 User._meta.get_field('email')._unique = True
 
 
+class PendConfirmationDataInline(admin.TabularInline):
+	model = PendConfirmationData
+
+
+class PendConfirmationAdmin(admin.ModelAdmin):
+	inlines = [PendConfirmationDataInline]
+
+
 admin.site.unregister(User)
 admin.site.register(User, SteppingOutUserAdmin)
+admin.site.register(OfficerPosition, OfficerPositionAdmin)
+admin.site.register(Term, TermAdmin)
+admin.site.register(PendConfirmation, PendConfirmationAdmin)

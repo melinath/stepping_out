@@ -1,7 +1,3 @@
-from django.forms.models import BaseInlineFormSet, BaseModelForm, ModelForm, DELETION_FIELD_NAME, construct_instance
-from django.forms.widgets import RadioSelect
-from stepping_out.auth.models import UserEmail, PendConfirmation, PendConfirmationData
-from stepping_out.auth.widgets import EmailInput
 from django.conf import settings
 from django.contrib.auth.forms import PasswordResetForm, UserCreationForm
 from django.contrib.contenttypes.models import ContentType
@@ -12,8 +8,13 @@ from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.db import models
 from django import forms
+from django.forms.models import BaseInlineFormSet, BaseModelForm, ModelForm, DELETION_FIELD_NAME, construct_instance
+from django.forms.widgets import RadioSelect
 from django.template import loader, Context
 from django.utils.translation import ugettext_lazy as _
+from stepping_out.auth.models import PendConfirmation, PendConfirmationData
+from stepping_out.auth.widgets import EmailInput
+from stepping_out.mail.models import UserEmail
 from random import choice
 
 

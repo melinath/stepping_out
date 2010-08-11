@@ -1,6 +1,6 @@
 from django import forms
 from django.utils.datastructures import SortedDict
-from stepping_out.modules.fields import BaseProxyField, InlineField
+from stepping_out.admin.fields import BaseProxyField, InlineField
 
 
 def get_declared_fields(bases, attrs, with_base_fields=True):

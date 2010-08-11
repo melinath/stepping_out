@@ -1,7 +1,6 @@
 from django.contrib.auth.models import User
 from django import forms
 from stepping_out.auth.forms import RequiredInlineFormSet
-from stepping_out.modules.modules import ModuleMetaclass
 from django.forms.models import inlineformset_factory, ModelForm
 
 

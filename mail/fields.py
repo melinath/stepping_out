@@ -1,11 +1,11 @@
-from django.forms.models import ModelMultipleChoiceField, ModelChoiceIterator
-from stepping_out.modules.fields import ChoiceOfManyField
-from django.utils.safestring import mark_safe
 from django.forms.fields import ChoiceField
+from django.forms.models import ModelMultipleChoiceField, ModelChoiceIterator
 from django.forms.widgets import CheckboxSelectMultiple, CheckboxInput
-from itertools import chain
-from django.utils.html import conditional_escape
 from django.utils.encoding import force_unicode
+from django.utils.html import conditional_escape
+from django.utils.safestring import mark_safe
+from stepping_out.admin.fields import ChoiceOfManyField
+from itertools import chain
 
 
 # is this the way to do it? Or should I make the thing iterable?
@@ -17,8 +17,7 @@ class HelpTextCheckboxSelectMultiple(CheckboxSelectMultiple):
 		output = [u'<ul>']
 		# Normalize to strings
 		str_values = set([force_unicode(v) for v in value])
-		#import pdb
-		#pdb.set_trace()
+		
 		for i, (option_value, option_label, option_help_text) in enumerate(chain(self.choices, choices)):
 			# If an ID attribute was given, add a numeric index as a suffix,
 			# so that the checkboxes don't all have the same ID attribute.

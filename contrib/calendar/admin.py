@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.localflavor.us.forms import USZipCodeField
 from django.contrib.admin.widgets import AdminSplitDateTime 
 from settings import DEFAULT_ZIP
-import models
+from stepping_out.contrib.calendar import models
 
 CALENDAR_FIELDSET = ('Calendars', {
     'fields': ('calendars',),

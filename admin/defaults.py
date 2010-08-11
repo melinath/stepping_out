@@ -1,12 +1,11 @@
 from stepping_out.auth.forms import PrimaryUserEmailFormSet
-from stepping_out.auth.models import UserEmail
 from stepping_out.mail.fields import MailingListChoiceOfManyField
-from stepping_out.mail.models import MailingList
-from stepping_out.modules.admin import ModuleAdmin
-from stepping_out.modules.fields import ProxyField, InlineField
-from stepping_out.modules.models import ModelProxy
-from stepping_out.modules.modules import Module
-from stepping_out.modules.sites import site
+from stepping_out.mail.models import MailingList, UserEmail
+from stepping_out.admin.admin import ModuleAdmin
+from stepping_out.admin.fields import ProxyField, InlineField
+from stepping_out.admin.models import ModelProxy
+from stepping_out.admin.modules import Module
+from stepping_out.admin.sites import site
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse

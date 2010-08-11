@@ -1,10 +1,11 @@
-from django.db import models
+from django import forms
 from django.contrib.auth.models import User, Group
 from django.contrib.contenttypes.models import ContentType
-from django import forms
 from django.contrib.sites.models import Site
-from stepping_out.mail.validators import EmailNameValidator
+from django.core.exceptions import ValidationError
+from django.db import models
 from django.utils import simplejson as json
+from stepping_out.mail.validators import EmailNameValidator
 
 
 SUBSCRIPTION_CHOICES = (
@@ -12,6 +13,40 @@ SUBSCRIPTION_CHOICES = (
 	('sub', 'Subscribers',),
 	('all', 'Anyone',),
 )
+
+
+class UserEmail(models.Model):
+	email = models.EmailField(unique=True)
+	user = models.ForeignKey(User, related_name='emails')
+	
+	def delete(self):
+		user = self.user
+		super(UserEmail, self).delete()
+		if user.email == self.email:
+			user.email = user.emails.all()[0].email
+	
+	def __unicode__(self):
+		return self.email
+	
+	class Meta:
+		app_label = 'mail'
+
+
+def validate_user_emails(instance, **kwargs):
+	try:
+		UserEmail.objects.exclude(user=instance).get(email=instance.email)
+	except UserEmail.DoesNotExist:
+		pass
+	else:
+		raise ValidationError('A user with that email already exists.')
+
+
+def sync_user_emails(instance, created, **kwargs):
+	instance.emails.get_or_create(email=instance.email)
+
+
+models.signals.pre_save.connect(validate_user_emails, sender=User)
+models.signals.post_save.connect(sync_user_emails, sender=User)
 
 
 class UserList(models.Model):
@@ -54,7 +89,7 @@ class UserList(models.Model):
 		return self.name
 	
 	class Meta:
-		app_label = 'stepping_out'
+		app_label = 'mail'
 
 
 class MailingListManager(models.Manager):
@@ -185,4 +220,4 @@ class MailingList(models.Model):
 	
 	class Meta:
 		unique_together = ('site', 'address',)
-		app_label = 'stepping_out'
+		app_label = 'mail'

@@ -1,5 +1,5 @@
 from django.core.urlresolvers import reverse
-from stepping_out.modules import moduleform_factory
+from stepping_out.admin import moduleform_factory
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext

@@ -1,9 +1,16 @@
 from django.contrib import admin
 from django import forms
-from models import MailingList, UserList
+from models import MailingList, UserList, UserEmail
 
 
 COLLAPSE_OPEN_CLASSES = ('collapse', 'open', 'collapse-open',)
+
+
+class UserEmailInline(admin.TabularInline):
+	model = UserEmail
+	extra = 1
+	verbose_name = 'email address'
+	verbose_name_plural = 'email addresses'
 
 
 class MailingListAdmin(admin.ModelAdmin):

@@ -1,5 +1,4 @@
 from django.conf.urls.defaults import patterns, include, url
-from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import authenticate, login, views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
@@ -12,8 +11,8 @@ from django.utils.translation import ugettext_lazy, ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from stepping_out.auth.forms import PendUserCreationForm, TestHumanityForm
-from stepping_out.modules.admin import ModuleAdmin
-from stepping_out.modules.modules import Module
+from stepping_out.admin.admin import ModuleAdmin
+from stepping_out.admin.modules import Module
 from django import forms
 
 

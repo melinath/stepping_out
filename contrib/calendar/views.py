@@ -1,7 +1,7 @@
 import vobject
 import datetime
 from django.http import HttpResponse
-from models import CalItem, LocalCalendar, ExternalCalendar
+from stepping_out.contrib.calendar.models import CalItem, LocalCalendar, ExternalCalendar
 from django.shortcuts import render_to_response
 
 def get_calendar_events(

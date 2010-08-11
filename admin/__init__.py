@@ -1,10 +1,10 @@
-from stepping_out.modules.modules import *
-from stepping_out.modules.models import *
-from stepping_out.modules.forms import *
-from stepping_out.modules.fields import *
-from stepping_out.modules.admin import *
-from stepping_out.modules.sites import *
-from stepping_out.modules.defaults import *
+from stepping_out.admin.modules import *
+from stepping_out.admin.models import *
+from stepping_out.admin.forms import *
+from stepping_out.admin.fields import *
+from stepping_out.admin.admin import *
+from stepping_out.admin.sites import *
+from stepping_out.admin.defaults import *
 
 
 def autodiscover():

@@ -28,9 +28,6 @@ class Calendar(models.Model):
 				return self.name
 		
 		return '%s (%s)' % (name, caltype)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class LocalCalendar(Calendar):
@@ -39,9 +36,6 @@ class LocalCalendar(Calendar):
 	"""
 	def __unicode__(self):
 		return self.name
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class ExternalCalendar(Calendar):
@@ -61,9 +55,6 @@ class ExternalCalendar(Calendar):
 	
 	def __unicode__(self):
 		return self.name
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class Building(models.Model):
@@ -84,9 +75,6 @@ class Building(models.Model):
 	
 	def __unicode__(self):
 		return '%s, %s %s' % (self.name_or_address(), self.city, self.state,)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class Venue(models.Model):
@@ -107,9 +95,6 @@ class Venue(models.Model):
 	
 	def __unicode__(self):
 		return self.name
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class CalItem(models.Model):
@@ -178,9 +163,6 @@ class CalItem(models.Model):
 		
 	def add_to_cal(self, ical):
 		self.set_ical_item(ical.add('vevent'))
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class CalItemChild(CalItem):
@@ -213,9 +195,6 @@ class Deadline(CalItemChild):
 	def set_ical_item(self, item):
 		item.add('due').value = self.time
 		super(Deadline, self).set_ical_item(item)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 def set_ical_child(item, uid):
@@ -263,9 +242,6 @@ class Workshop(CalItemChild):
 		self.set_ical_location(item)
 		
 		super(Workshop, self).set_ical_item(item)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class CalEvent(CalItemChild):
@@ -324,9 +300,6 @@ class Dance(CalEvent):
 		
 	def set_ical_parent(self, item):
 		set_ical_parent(item, self.workshop.UID)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class Lesson(CalEvent):
@@ -363,9 +336,6 @@ class Lesson(CalEvent):
 	def set_ical_item(self, item):
 		self.set_ical_teachers(item)
 		super(Lesson, self).set_ical_item(item)
-	
-	class Meta:
-		app_label = 'stepping_out'
 
 
 class Meeting(CalEvent):
@@ -376,10 +346,6 @@ class Meeting(CalEvent):
 	"""
 	agenda = models.TextField(blank=True)
 	minutes = models.TextField(blank=True)
-	
-	class Meta:
-		app_label = 'stepping_out'
-	
 
 
 class Ride(models.Model):
@@ -404,6 +370,3 @@ class Ride(models.Model):
 	)
 	object_id = models.PositiveIntegerField(verbose_name='event id')
 	event = generic.GenericForeignKey()
-	
-	class Meta:
-		app_label = 'stepping_out'
