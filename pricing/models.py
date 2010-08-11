@@ -5,11 +5,16 @@ from django.contrib.contenttypes.models import ContentType
 
 
 class PricePackage(models.Model):
+	"""
+	A price package can be attached to anything: a lesson, a dance, a workshop.
+	May later be limited to any 'event'.
+	"""
 	name = models.CharField(max_length=40)
 	description = models.TextField(blank=True)
-	attached_content_type = models.ForeignKey(ContentType)
-	attached_object_id = models.PositiveIntegerField()
-	attached_to = generic.GenericForeignKey('attached_content_type', 'attached_object_id')
+	event_content_type = models.ForeignKey(ContentType)
+	event_object_id = models.PositiveIntegerField()
+	event = generic.GenericForeignKey('event_content_type', 'event_object_id')
+	available_until = models.DateField(blank=True, null=True)
 	
 	class Meta:
 		app_label = 'stepping_out'
