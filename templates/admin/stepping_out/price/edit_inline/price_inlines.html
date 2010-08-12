@@ -1,0 +1,37 @@
+{% load i18n adminmedia %}
+{{ inline_admin_formset.formset.management_form }}
+{% if inline_admin_formset.formset.queryset %}
+<div class="inline-group" id="{{ inline_admin_formset.formset.prefix }}-group">
+  <div class="tabular inline-related {% if forloop.last %}last-related{% endif %}">
+<fieldset class="module aligned {{ inline_admin_formset.inline.classes }}">
+  <h2>{{ inline_admin_formset.opts.verbose_name_plural|capfirst }}</h2>
+  {{ inline_admin_formset.formset.non_form_errors }}
+  {% for inline_admin_form in inline_admin_formset %}
+    {% if inline_admin_form.original %}
+    <div class="form-row{% if inline_admin_form.form.non_field_errors %} errors{% endif %}">
+      {{ inline_admin_form.form.non_field_errors }}
+      {% if inline_admin_form.has_auto_field %}{{ inline_admin_form.pk_field.field }}{% endif %}
+      {{ inline_admin_form.fk_field.field }}
+      {% spaceless %}
+        {% for fieldset in inline_admin_form %}
+          {% for line in fieldset %}
+            {% for field in line %}
+              {% if field.is_hidden %} {{ field.field }} {% endif %}
+            {% endfor %}
+          {% endfor %}
+        {% endfor %}
+      {% endspaceless %}
+      {% with inline_admin_form.form.price as field %}
+      {{ field.errors }}
+      <div>
+        <label class='required' for="id_{% if widget.attrs.id %}{{ widget.attrs.id }}{% else %}{{ field.auto_id }}{% endif %}">{{ inline_admin_form.original.get_person_type }}:</label>
+        {{ field }}
+      </div>
+      {% endwith %}
+    </div>
+    {% endif %}
+  {% endfor %}
+</fieldset>
+  </div>
+</div>
+{% endif %}

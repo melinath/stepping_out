@@ -19,8 +19,10 @@ class WorkshopUserMetaInfo(models.Model):
 	workshop = models.ForeignKey('Workshop')
 	user = models.ForeignKey(User)
 	# FIXME: Choices should be limited to the classes available for the workshop.
+	# Perhaps this should even be part of the pricing module instead of here?
+	# person_type = models.CharField(max_length=15)
 	price_class = models.ForeignKey(PriceClass)
-	paid = models.FloatField(verbose_name="Amount paid") # FIXME: precision
+	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
 	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered = models.DateTimeField(default=datetime.now)
@@ -34,6 +36,7 @@ class Workshop(models.Model):
 	workshop_start = models.DateField(verbose_name='workshop start date')
 	workshop_end = models.DateField(verbose_name='workshop end date')
 	registered_users = models.ManyToManyField(User, through=WorkshopUserMetaInfo)
+	is_active = models.BooleanField()
 	
 	prices = generic.GenericRelation(PricePackage, content_type_field='event_content_type', object_id_field='event_object_id')
 	_housing = generic.GenericRelation(HousingCoordinator, content_type_field='event_content_type', object_id_field='event_object_id')
@@ -41,7 +44,12 @@ class Workshop(models.Model):
 	@property
 	def housing(self):
 		# going for a "GenericOneToOne" feel here.
-		return self._housing.all()[0]
+		if self._housing.all():
+			return self._housing.all()[0]
+		return None
+	
+	def __unicode__(self):
+		return self.name
 	
 	class Meta:
 		get_latest_by = ['workshop_start']
