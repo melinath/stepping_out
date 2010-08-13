@@ -8,7 +8,16 @@ class SlugListField(models.TextField):
 	__metaclass__ = models.SubfieldBase
 	description = _("Comma-separated slug field")
 	
+	def __init__(self, *args, **kwargs):
+		if 'choices' in kwargs and hasattr(kwargs['choices'], '__call__'):
+			self._choice_func = kwargs.pop('choices')
+			kwargs['choices'] = self._choice_func()
+		super(SlugListField, self).__init__(*args, **kwargs)
+	
 	def get_choices(self, **kwargs):
+		# TODO: is there a more elegant way to force late evaluation?
+		if hasattr(self, '_choice_func'):
+			return self._choice_func()
 		kwargs['include_blank'] = False
 		return super(SlugListField, self).get_choices(**kwargs)
 	

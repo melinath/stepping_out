@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.contenttypes import generic
-from stepping_out.pricing.models import PricePackage, PriceClass, Price
+from stepping_out.pricing.models import PricePackage, PriceOption, Price, Payment
 
 
 # This is only useful in the bright future where nested inlines roam free.
@@ -10,13 +10,13 @@ from stepping_out.pricing.models import PricePackage, PriceClass, Price
 #	ct_fk_field = 'attached_object_id'
 
 
-class PriceClassInline(admin.TabularInline):
-	model = PriceClass
+class PriceOptionInline(admin.TabularInline):
+	model = PriceOption
 
 
 class PricePackageAdmin(admin.ModelAdmin):
 	inlines=[
-		PriceClassInline
+		PriceOptionInline
 	]
 
 
@@ -28,11 +28,15 @@ class PriceInline(admin.TabularInline):
 	template = 'admin/stepping_out/price/edit_inline/price_inlines.html'
 
 
-class PriceClassAdmin(admin.ModelAdmin):
+class PriceOptionAdmin(admin.ModelAdmin):
 	inlines = [
 		PriceInline
 	]
 
 
+class PaymentAdmin(admin.ModelAdmin):
+	pass
+
+
 admin.site.register(PricePackage, PricePackageAdmin)
-admin.site.register(PriceClass, PriceClassAdmin)
+admin.site.register(PriceOption, PriceOptionAdmin)

@@ -19,47 +19,81 @@ class PricePackage(models.Model):
 	event_object_id = models.PositiveIntegerField()
 	event = generic.GenericForeignKey('event_content_type', 'event_object_id')
 	available_until = models.DateField(blank=True, null=True)
-	person_types = SlugListField(choices=people.registry.get_choices())
+	person_types = SlugListField(choices=people.registry.get_choices)
 	
 	def __unicode__(self):
 		return '%s :: %s' % (self.name, self.event)
+	
+	def save(self, *args, **kwargs):
+		refresh = False
+		if self.pk:
+			old = self._default_manager.get(pk=self.pk)
+			if old.person_types != self.person_types:
+				refresh = True
+		
+		super(PricePackage, self).save(*args, **kwargs)
+		
+		if refresh:
+			for option in self.options:
+				option.refresh_person_types()
 	
 	class Meta:
 		app_label = 'stepping_out'
 
 
-class PriceClass(models.Model):
+class PriceOption(models.Model):
 	"""
-	A price class is, for example, "Full Weekend", "Saturday", "Friday Night
+	A price option is, for example, "Full Weekend", "Saturday", "Friday Night
 	Dance".
 	"""
 	name = models.CharField(max_length=40)
-	package = models.ForeignKey(PricePackage, related_name='price_classes')
+	package = models.ForeignKey(PricePackage, related_name='options')
 	
 	def __unicode__(self):
 		return self.name
 	
-	def save(self, *args, **kwargs):
-		super(PriceClass, self).save(*args, **kwargs)
+	def refresh_person_types(self):
 		for person_type in self.package.person_types:
 			self.prices.get_or_create(person_type=person_type)
 		
 		for price in self.prices.exclude(person_type__in=self.package.person_types):
 			price.delete()
+	
+	def save(self, *args, **kwargs):
+		super(PriceOption, self).save(*args, **kwargs)
+		self.refresh_person_types()
 	save.alters_data = True
 	
 	class Meta:
 		app_label = 'stepping_out'
-		verbose_name_plural = 'price classes'
 
 
 class Price(models.Model):
-	price_class = models.ForeignKey(PriceClass, related_name='prices')
+	option = models.ForeignKey(PriceOption, related_name='prices')
 	person_type = models.CharField(max_length=15, editable=False)
 	price = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+	users = models.ManyToManyField(User, through='Payment')
 	
 	def get_person_type(self):
 		return people.registry[self.person_type]
+	
+	def get_event(self):
+		return self.option.package.event
+	
+	class Meta:
+		app_label = 'stepping_out'
+
+
+class Payment(models.Model):
+	PAYMENT_CHOICES = (
+		('cash', 'Cash'),
+		('check', 'Check'),
+		('online', 'Online')
+	)
+	price = models.ForeignKey(Price)
+	user = models.ForeignKey(User)
+	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
+	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
 	
 	class Meta:
 		app_label = 'stepping_out'
