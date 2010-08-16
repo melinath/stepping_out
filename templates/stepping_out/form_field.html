@@ -1,0 +1,9 @@
+	{% for field in form %}
+		<dt>{{ field.label_tag }}</dt>
+		<dd>{{ field }}</dd>
+		{% if field.errors %}
+		{% for error in field.errors %}
+		<dd class='error'>{{ error }}</dd>
+		{% endfor %}
+		{% endif %}
+	{% endfor %}

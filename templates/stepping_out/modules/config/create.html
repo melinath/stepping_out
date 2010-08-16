@@ -1,0 +1,14 @@
+{% extends 'stepping_out/modules/base.html' %}
+
+{% block content %}
+<form action='' method='post'>
+	{% csrf_token %}
+	<dl>
+		{% include 'stepping_out/form_field.html' %}
+		{{ form.subformset_instance }}
+		{% comment %}{% for form in form.subformset_instance %}
+		{% endfor %}{% endcomment %}
+	</dl>
+	<p><button type='submit'>Create Workshop</button></p>
+</form>
+{% endblock %}

@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from stepping_out.auth.forms import PendUserCreationForm, TestHumanityForm
 from stepping_out.admin.admin import ModuleAdmin
-from stepping_out.admin.modules import Module
+from stepping_out.admin.modules import Module, ConfigurationModule
 from django import forms
 
 
@@ -124,7 +124,7 @@ class ModuleAdminSite(object):
 		"""
 		Registers a given module with a UserAdminSite instance.
 		"""
-		if not issubclass(module, Module):
+		if not issubclass(module, Module) and not issubclass(module, ConfigurationModule):
 			raise TypeError('%s must be a subclass of %s' %
 				(module, Module.__name__))
 		
@@ -151,7 +151,7 @@ class ModuleAdminSite(object):
 		
 		return False
 	
-	def admin_view(self, view, cacheable=False, test=None):
+	def admin_view(self, view, cacheable=False):
 		"""
 		Decorator to apply common decorators to views for this admin.
 		"""
@@ -172,7 +172,6 @@ class ModuleAdminSite(object):
 			url(r'^logout/$', self.logout,
 				name='%s_logout' % self.url_prefix),
 			url(r'^confirm/(?P<code>[\w-]+)$', 'stepping_out.auth.views.confirm_pended_action',
-				{'extra_context': self.get_context()},
 				name='%s_pended_action_confirm' % self.url_prefix),
 			url(r'^password/reset/$', 'django.contrib.auth.views.password_reset',
 				{'template_name': 'stepping_out/registration/password_reset_form.html'},
@@ -201,16 +200,20 @@ class ModuleAdminSite(object):
 	def urls(self):
 		return self.get_urls()
 	
-	def get_context(self):
-		return {'modules': self.modules}
+	def get_context(self, request):
+		admins = []
+		for admin in self.modules.values():
+			if admin.has_permission(request):
+				admins.append(admin)
+		return {'modules': admins}
 	
 	def home(self, request):
 		try:
-			return HttpResponseRedirect(self.get_module('home')[1].absolute_url)
+			return HttpResponseRedirect(self.get_module('home')[1].get_root_url())
 		except NotRegistered:
 			return render_to_response(
 				self.home_template,
-				self.get_context(),
+				self.get_context(request),
 				context_instance=RequestContext(request)
 			)
 		except:
@@ -306,11 +309,11 @@ class ModuleAdminSite(object):
 			'form': form,
 			'humanity_form': humanity_form
 		}
-		c.update(self.get_context())
+		c.update(self.get_context(request))
 		return render_to_response(self.account_create_template, c,
 			context_instance=RequestContext(request))
 	
 	def account_create_done(self, request):
-		return render_to_response(self.account_create_done_template, self.get_context(), context_instance=RequestContext(request))
+		return render_to_response(self.account_create_done_template, self.get_context(request), context_instance=RequestContext(request))
 
 site = ModuleAdminSite()

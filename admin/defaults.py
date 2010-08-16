@@ -1,10 +1,10 @@
 from stepping_out.auth.forms import PrimaryUserEmailFormSet
 from stepping_out.mail.fields import MailingListChoiceOfManyField
 from stepping_out.mail.models import MailingList, UserEmail
-from stepping_out.admin.admin import ModuleAdmin
+from stepping_out.admin.admin import ModuleAdmin, ConfigurationModuleAdmin
 from stepping_out.admin.fields import ProxyField, InlineField
 from stepping_out.admin.models import ModelProxy
-from stepping_out.admin.modules import Module
+from stepping_out.admin.modules import Module, ConfigurationModule
 from stepping_out.admin.sites import site
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
@@ -63,9 +63,8 @@ class ChangePasswordModuleAdmin(ModuleAdmin):
 		)
 		return urlpatterns
 	
-	def get_absolute_url(self):
+	def get_root_url(self):
 		return reverse('%s_password_change' % (self.admin_site.url_prefix))
-	absolute_url = property(get_absolute_url)
 	
 	def change_view(self, request, password_change_form=PasswordChangeForm):
 		post_change_redirect = reverse('%s_password_change_done' % self.admin_site.url_prefix)
@@ -78,14 +77,14 @@ class ChangePasswordModuleAdmin(ModuleAdmin):
 		else:
 			form = password_change_form(user=request.user)
 		
-		context = self.get_context()
+		context = self.get_context(request)
 		context.update({'form': form})
 		
 		return render_to_response(self.template, context,
 				context_instance=RequestContext(request))
 	
 	def done_view(self, request):
-		return render_to_response(self.done_template, self.get_context(),
+		return render_to_response(self.done_template, self.get_context(request),
 			context_instance=RequestContext(request))
 
 
@@ -113,7 +112,21 @@ class MailingListAdmin(ModuleAdmin):
 	order = 30
 
 
+class MailingListConfigurationModule(ConfigurationModule):
+	model = MailingList
+	slug = 'mailing-lists'
+	verbose_name = 'Manage Mailing Lists'
+
+
+class MailingListConfigurationAdmin(ConfigurationModuleAdmin):
+	order = 40
+	create_form = None
+	edit_form = None
+	
+
+
 site.register(UserSettingsModule, UserSettingsAdmin)
 site.register(MailingListModule, MailingListAdmin)
 site.register(HomeModule, HomeModuleAdmin)
 site.register(ChangePasswordModule, ChangePasswordModuleAdmin)
+site.register(MailingListConfigurationModule, MailingListConfigurationAdmin)

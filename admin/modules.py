@@ -10,14 +10,9 @@ class ModuleOptions(object):
 		self.module = module
 		self.model_proxies = set()
 		self.field_proxies = []
-		
-		if hasattr(module, 'model_proxy'):
-			self.model_proxies.add(module.model_proxy)
 	
 	def add_field_proxy(self, field_proxy):
 		if field_proxy not in self.field_proxies:
-			if hasattr(self.module, 'model_proxy') and field_proxy.model_proxy != self.module.model_proxy:
-				raise ValueError
 			self.model_proxies.add(field_proxy.model_proxy)
 			self.field_proxies.insert(bisect(self.field_proxies, field_proxy), field_proxy)
 
@@ -30,11 +25,7 @@ class ModuleMetaclass(type):
 			return super_new(cls, name, bases, attrs)
 		
 		module = attrs.pop('__module__')
-		try:
-			model_proxy = attrs.pop('model_proxy')
-			new_class = super_new(cls, name, bases, {'__module__': module, 'model_proxy': model_proxy})
-		except:
-			new_class = super_new(cls, name, bases, {'__module__': module})
+		new_class = super_new(cls, name, bases, {'__module__': module})
 		new_class._meta = ModuleOptions(new_class)
 		
 		for obj_name, obj in attrs.items():
@@ -99,3 +90,47 @@ class Module(object):
 		for func in self._save_funcs:
 			func()
 	save.alters_data = True
+
+
+class ConfigurationModuleMetaclass(type):
+	def __new__(cls, name, bases, attrs):
+		super_new = super(ConfigurationModuleMetaclass, cls).__new__
+		parents = [b for b in bases if isinstance(b, ConfigurationModuleMetaclass)]
+		if not parents:
+			return super_new(cls, name, bases, attrs)
+		
+		module = attrs.pop('__module__')
+		new_class = super_new(cls, name, bases, {'__module__': module})
+		new_class._meta = ModuleOptions(new_class)
+		
+		for obj_name, obj in attrs.items():
+			new_class.add_to_class(obj_name, obj)
+		
+		if 'verbose_name' not in attrs or 'slug' not in attrs:
+			model = attrs.get('model', None)
+			default_name = capfirst(convert_camelcase(model.__name__))
+			if 'verbose_name' not in attrs:
+				new_class.verbose_name = 'Manage %s' % model._meta.verbose_name_plural
+			
+			if 'slug' not in attrs:
+				new_class.slug = slugify(default_name)
+		
+		return new_class
+	
+	def add_to_class(cls, name, value):
+		if hasattr(value, 'contribute_to_class'):
+			value.contribute_to_class(cls, name)
+		else:
+			setattr(cls, name, value)
+
+
+class ConfigurationModule(object):
+	__metaclass__ = ConfigurationModuleMetaclass
+	model = None
+	limit_choices_to = None
+	
+	@classmethod
+	def get_queryset(self):
+		# TODO: Should this be an instance and cache?
+		# TODO: Apply the limiter.
+		return self.model._default_manager.all()

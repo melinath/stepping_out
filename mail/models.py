@@ -129,22 +129,22 @@ class MailingList(models.Model):
 		User,
 		related_name = 'subscribed_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'users'
+		null = True#,
+		#verbose_name = 'users'
 	)
 	subscribed_groups = models.ManyToManyField(
 		Group,
 		related_name = 'subscribed_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'groups'
+		null = True#,
+		#verbose_name = 'groups'
 	)
 	subscribed_userlists = models.ManyToManyField(
 		UserList,
 		related_name = 'subscribed_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'user lists'
+		null = True#,
+		#verbose_name = 'user lists'
 	)
 	
 	who_can_post = models.CharField(
@@ -159,22 +159,22 @@ class MailingList(models.Model):
 		User,
 		related_name = 'moderated_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'users'
+		null = True#,
+		#verbose_name = 'users'
 	)
 	moderator_groups = models.ManyToManyField(
 		Group,
 		related_name='moderated_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'groups'
+		null = True#,
+		#verbose_name = 'groups'
 	)
 	moderator_userlists = models.ManyToManyField(
 		UserList,
 		related_name='moderated_mailinglist_set',
 		blank = True,
-		null = True,
-		verbose_name = 'user lists'
+		null = True#,
+		#verbose_name = 'user lists'
 	)
 	
 	def __unicode__(self):

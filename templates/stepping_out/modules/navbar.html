@@ -1,7 +1,16 @@
 <ul id='navbar' class='module'>
 {% with admin as global_admin %}
-{% for admin in modules.values %}
-	<li{% if admin == global_admin %} class='active'{% endif %}><a href='{{ admin.get_absolute_url }}'>{{ admin.verbose_name }}</a></li>
+{% for admin in modules %}
+	<li{% if admin == global_admin %} class='active'{% endif %}>
+		<a href='{{ admin.get_root_url }}'>{{ admin.verbose_name }}</a>
+		{% if admin.subnav %}
+		<ul>
+			{% for url, name in admin.subnav %}
+			<li><a href='{{ url }}'>{{ name }}</a></li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</li>
 {% empty %}
 	<li>No sections available.</li>
 {% endfor %}
