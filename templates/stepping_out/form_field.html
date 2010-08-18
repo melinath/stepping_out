@@ -6,4 +6,7 @@
 		<dd class='error'>{{ error }}</dd>
 		{% endfor %}
 		{% endif %}
+		{% if field.help_text %}
+		<dd class='help'>{{ field.help_text }}</dd>
+		{% endif %}
 	{% endfor %}

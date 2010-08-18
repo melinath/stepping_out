@@ -16,6 +16,7 @@ class WorkshopModuleAdmin(ConfigurationModuleAdmin):
 	order = 50
 	create_form = CreateWorkshopForm
 	edit_form = EditWorkshopForm
+	edit_template = 'stepping_out/modules/config/workshops.html'
 
 
 site.register(WorkshopModule, WorkshopModuleAdmin)

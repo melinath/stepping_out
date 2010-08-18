@@ -7,7 +7,7 @@ body{
 	color:#000;
 }
 
-button, input, a{
+button, input, a, textarea{
 	font-size:inherit;
 	font-family:inherit;
 	font-weight:inherit;
@@ -27,7 +27,7 @@ button:active{
 }
 
 input[type='text'], input[type='password'], input[type='email'],
-input[type='url']{
+input[type='url'], textarea{
 	background: #f8f8f8;
 	padding:4px;
 	border-left:#ddd solid 9px;
@@ -37,12 +37,15 @@ input[type=email]{
 	padding-right:5%;
 }
 input[type=text][readonly=readonly], input[type=email][readonly=readonly],
-input[type=url][readonly=readonly]{
+input[type=url][readonly=readonly], textarea[readonly=readonly]{
 	background: #ddd;
 }
 
-p, dl, ul{
+p, ul{
 	margin-bottom:10px;
+}
+dl{
+	margin-bottom:20px;
 }
 
 dd + dt, dl table{
