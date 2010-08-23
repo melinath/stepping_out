@@ -1,7 +1,6 @@
 from django.core.mail.utils import DNS_NAME
 from django.db.models import Q
 from django.contrib.auth.models import User, AnonymousUser
-from models import MailingList
 from sys import stdin
 import email
 from email.parser import Parser
@@ -15,7 +14,6 @@ MAX_SMTP_RECIPS = 99 # see http://people.dsv.su.se/~jpalme/ietf/mailing-list-beh
 """
 MAIL_LOG_PATH = '' #make sure this is writable by the mail server!
 """
-# Perhaps make email domains an object with a foreignkey related to the site?
 
 
 def route_email(input = stdin):

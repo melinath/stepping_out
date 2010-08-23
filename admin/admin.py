@@ -6,6 +6,8 @@ from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.contrib import messages
+from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.forms.widgets import SelectMultiple
 
 
 class FieldSet(object):
@@ -135,6 +137,8 @@ class ConfigurationModuleAdmin(ModuleAdmin):
 	base_template = 'stepping_out/modules/config/base.html'
 	create_template = 'stepping_out/modules/config/create.html'
 	edit_template = 'stepping_out/modules/config/edit.html'
+	create_form = None
+	edit_form = None
 	
 	def __init__(self, admin_site, module_class):
 		self.admin_site = admin_site
@@ -147,10 +151,20 @@ class ConfigurationModuleAdmin(ModuleAdmin):
 			self.slug = module_class.slug
 		
 		if self.create_form is None:
-			self.create_form = modelform_factory(module_class.model)
+			self.create_form = self.default_form
 		
 		if self.edit_form is None:
-			self.edit_form = modelform_factory(module_class.model)
+			self.edit_form = self.default_form
+	
+	@property
+	def default_form(self):
+		if not hasattr(self, '_default_form'):
+			form = modelform_factory(self.module_class.model)
+			for name, field in form.base_fields.items():
+				if isinstance(field.widget, SelectMultiple):
+					field.widget = FilteredSelectMultiple(name.replace('_', ' '), False)
+			self._default_form = form
+		return self._default_form
 	
 	def has_permission(self, request):
 		return request.user.has_perm('change', self.module_class.model)

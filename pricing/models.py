@@ -39,6 +39,7 @@ class PricePackage(models.Model):
 	
 	class Meta:
 		app_label = 'stepping_out'
+		ordering = ['available_until']
 
 
 class PriceOption(models.Model):

@@ -113,10 +113,8 @@ class MailingList(models.Model):
 	This model contains all options for a mailing list, as well as some helpful
 	methods for accessing subscribers, moderators, etc.
 	"""
-	#from django.db.utils import DatabaseError
-	#try:
-	#	DEFAULT_SITE = Site.objects.get_current()
-	#except DatabaseError:
+	# Really this whole address/site thing is ridiculous, but I don't have the
+	# time just now to fix it.
 	DEFAULT_SITE = None
 	objects = MailingListManager()
 	

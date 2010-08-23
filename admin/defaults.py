@@ -120,9 +120,6 @@ class MailingListConfigurationModule(ConfigurationModule):
 
 class MailingListConfigurationAdmin(ConfigurationModuleAdmin):
 	order = 40
-	create_form = None
-	edit_form = None
-	
 
 
 site.register(UserSettingsModule, UserSettingsAdmin)

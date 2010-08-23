@@ -85,6 +85,9 @@ class WorkshopUserMetaInfo(models.Model):
 	user = models.ForeignKey(User)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
+	
+	class Meta:
+		unique_together = ('workshop', 'user')
 
 
 class WorkshopEvent(models.Model):
