@@ -3,11 +3,11 @@ from django.contrib.contenttypes import generic
 from stepping_out.pricing.models import PricePackage, PriceOption, Price, Payment
 
 
-# This is only useful in the bright future where nested inlines roam free.
-#class PricePackageInline(generic.GenericTabularInline):
-#	model = PricePackage
-#	ct_field = 'attached_content_type'
-#	ct_fk_field = 'attached_object_id'
+class PricePackageInline(generic.GenericStackedInline):
+	model = PricePackage
+	ct_field = 'event_content_type'
+	ct_fk_field = 'event_object_id'
+	extra = 0
 
 
 class PriceOptionInline(admin.TabularInline):

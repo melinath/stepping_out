@@ -1,10 +1,10 @@
 from stepping_out.auth.forms import PrimaryUserEmailFormSet
 from stepping_out.mail.fields import MailingListChoiceOfManyField
 from stepping_out.mail.models import MailingList, UserEmail
-from stepping_out.admin.admin import ModuleAdmin, ConfigurationModuleAdmin
+from stepping_out.admin.admin import ModuleAdmin, QuerySetModuleAdmin
 from stepping_out.admin.fields import ProxyField, InlineField
 from stepping_out.admin.models import ModelProxy
-from stepping_out.admin.modules import Module, ConfigurationModule
+from stepping_out.admin.modules import Module, QuerySetModule
 from stepping_out.admin.sites import site
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
@@ -112,13 +112,13 @@ class MailingListAdmin(ModuleAdmin):
 	order = 30
 
 
-class MailingListConfigurationModule(ConfigurationModule):
+class MailingListConfigurationModule(QuerySetModule):
 	model = MailingList
 	slug = 'mailing-lists'
 	verbose_name = 'Manage Mailing Lists'
 
 
-class MailingListConfigurationAdmin(ConfigurationModuleAdmin):
+class MailingListConfigurationAdmin(QuerySetModuleAdmin):
 	order = 40
 
 

@@ -1,0 +1,29 @@
+{% for name, url, is_active, subnav in navbar %}
+	<li{% if is_active %} class='active'{% endif %}>
+		{% if url %}<a href='{{ url }}'>{% endif %}
+		{{ name }}
+		{% if url %}</a>{% endif %}
+		{% if subnav %}
+		<ul>
+			{% for name, url, is_active, subsubnav in subnav %}
+			<li{% if is_active %} class='active'{% endif %}>
+				{% if url %}<a href='{{ url }}'>{% endif %}
+				{{ name }}
+				{% if url %}</a>{% endif %}
+				{% if subsubnav %}
+				<ul>
+					{% for name, url, is_active in subsubnav %}
+					<li{% if is_active %} class='active'{% endif %}>
+						{% if url %}<a href='{{ url }}'>{% endif %}
+						{{ name }}
+						{% if url %}</a>{% endif %}
+					</li>
+					{% endfor %}
+				</ul>
+				{% endif %}
+			</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</li>
+{% endfor %}

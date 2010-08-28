@@ -1,6 +1,6 @@
 {% spaceless %}
 
-{% load staticmedia %}
+{% load staticmedia adminmedia %}
 
 {% endspaceless %}<!DOCTYPE html>
 
@@ -9,6 +9,10 @@
 <head>
 	<title>{% block title %}Stepping Out User Admin{% endblock %}</title>
 	<link rel='stylesheet' type='text/css' href='{% mediaurl "stepping_out/modules/base.css" %}' />
+	{% block javascript %}
+	<script type='text/javascript' src='{% admin_media_prefix %}js/jquery.min.js'></script>
+	<script type='text/javascript' src='{% mediaurl "stepping_out/modules/base.js" %}'></script>
+	{% endblock %}
 </head>
 
 <body>
@@ -18,8 +22,13 @@
 		</div>
 		<div class='container one'>
 			{% block container_one %}
-				{% if not request.user.is_authenticated %}<a href='{% url stepping_out_admin_root %}'>Log in</a>
-				{% else %}{% include 'stepping_out/modules/navbar.html' %}{% endif %}
+			<ul id='navigation' class='module'>
+				{% if not request.user.is_authenticated %}
+				<li><a href='{% url stepping_out_admin_root %}'>Log in</a></li>
+				{% else %}
+				{% include 'stepping_out/navigation.html' %}
+				{% endif %}
+			</ul>
 			{% endblock %}
 		</div>
 		<div class='container two'>

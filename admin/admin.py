@@ -59,9 +59,11 @@ class ModuleAdmin(object):
 	def get_root_url(self):
 		return reverse('%s_%s' % (self.admin_site.url_prefix, self.slug))
 	
-	def get_subnav(self):
-		return None
-	subnav = property(get_subnav)
+	def get_nav(self, request):
+		if self.has_permission(request):
+			url = self.get_root_url()
+			return ((self.verbose_name, url, url == request.path),)
+		return ()
 	
 	def get_fieldsets(self, form):
 		if self.fieldsets is not None:
@@ -133,7 +135,7 @@ class ModuleAdmin(object):
 		)
 
 
-class ConfigurationModuleAdmin(ModuleAdmin):
+class QuerySetModuleAdmin(ModuleAdmin):
 	base_template = 'stepping_out/modules/config/base.html'
 	create_template = 'stepping_out/modules/config/create.html'
 	edit_template = 'stepping_out/modules/config/edit.html'
@@ -177,23 +179,42 @@ class ConfigurationModuleAdmin(ModuleAdmin):
 		urlpatterns = patterns('',
 			url(r'^$', wrap(self.base_view), name="%s_%s_root" % (self.admin_site.url_prefix, self.slug)),
 			url(r'^create/$', wrap(self.create_view), name="%s_%s_create" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^(?P<object_id>\d+)/$', wrap(self.edit_view), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
+			url(r'^(?P<object_id>\d+)/edit/$', wrap(self.edit_view), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
 		)
 		return urlpatterns
 	
 	def get_root_url(self):
 		return reverse('%s_%s_root' % (self.admin_site.url_prefix, self.slug))
 	
-	def get_subnav(self):
-		subnav = (
-			(reverse('%s_%s_create' % (self.admin_site.url_prefix, self.slug)), 'Create'),
-		)
-		for instance in self.module_class.get_queryset():
-			subnav += (
-				(reverse('%s_%s_edit' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': instance.id}), unicode(instance)),
-			)
-		return subnav
-	subnav = property(get_subnav)
+	def get_nav(self, request):
+		if self.has_permission(request):
+			main_is_active = False
+			subnav = ()
+			info = self.admin_site.url_prefix, self.slug
+			if request.user.has_perm('add', self.module_class.model):
+				url = reverse('%s_%s_create' % info)
+				is_active = (url == request.path)
+				if is_active:
+					main_is_active = True
+				subnav += (('Create', url, is_active, ()),)
+			
+			if request.user.has_perm('change', self.module_class.model):
+				edit_subnav = ()
+				edit_is_active = False
+				for instance in self.module_class.get_queryset():
+					url = reverse('%s_%s_edit' % info, kwargs={'object_id': instance.id})
+					is_active = (url == request.path)
+					if is_active:
+						edit_is_active = True
+					edit_subnav += (
+						(unicode(instance), url, is_active, ()),
+					)
+				
+				if edit_is_active:
+					main_is_active = True
+				subnav += (('Edit', None, edit_is_active, edit_subnav),)
+			return ((self.verbose_name, None, main_is_active, subnav),)
+		return ()
 	
 	def base_view(self, request):
 		return render_to_response(self.base_template, self.get_context(request),

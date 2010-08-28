@@ -2,7 +2,7 @@ from datetime import datetime, date, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
-from stepping_out.pricing.models import PricePackage
+from stepping_out.pricing.models import PricePackage, Price, Payment
 from stepping_out.pricing.people import registry
 from stepping_out.housing.models import HousingCoordinator
 
@@ -72,8 +72,20 @@ class Workshop(models.Model):
 	def __unicode__(self):
 		return self.name
 	
+	@property
+	def registration_is_open(self):
+		return (self.registration_start < date.today() < self.online_registration_end)
+	
 	class Meta:
 		get_latest_by = ['workshop_start']
+
+
+class WorkshopTrack(models.Model):
+	workshop = models.ForeignKey(Workshop, related_name='tracks')
+	name = models.CharField(max_length=75)
+	
+	def __unicode__(self):
+		return self.name
 
 
 class WorkshopUserMetaInfo(models.Model):
@@ -82,9 +94,12 @@ class WorkshopUserMetaInfo(models.Model):
 		('f', 'Follow')
 	)
 	workshop = models.ForeignKey(Workshop)
+	track = models.ForeignKey(WorkshopTrack)
 	user = models.ForeignKey(User)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
+	payments = generic.GenericRelation(Payment, content_type_field='payment_for_ct', object_id_field='payment_for_id')
+	price = models.ForeignKey(Price)
 	
 	class Meta:
 		unique_together = ('workshop', 'user')
@@ -95,4 +110,10 @@ class WorkshopEvent(models.Model):
 	description = models.TextField()
 	start = models.DateTimeField()
 	end = models.DateTimeField()
+	track = models.ForeignKey(WorkshopTrack, blank=True, null=True)
 	workshop = models.ForeignKey(Workshop)
+	
+	def save(self, *args, **kwargs):
+		if self.track and self.track.workshop != self.workshop:
+			self.workshop = self.track.workshop
+		super(WorkshopEvent, self).save(*args, **kwargs)

@@ -1,0 +1,25 @@
+{% extends 'stepping_out/modules/base.html' %}
+
+{% block content %}
+<form action='' method='post'>
+	{% csrf_token %}
+	<dl>
+		{% for field in form %}
+			{% include 'stepping_out/form_field.html' %}
+		{% endfor %}
+	</dl>
+	<fieldset>
+		<legend id='prices'>Prices</legend>
+		{% for form in form.subformset_instance.forms %}
+		<div class='collapse' rel='prices'>
+			<dl>
+				{% for field in form %}
+					{% include 'stepping_out/form_field.html' %}
+				{% endfor %}
+			</dl>
+		</div>
+		{% endfor %}
+	</fieldset>
+	<p><button type='submit'>Save Workshop</button></p>
+</form>
+{% endblock %}

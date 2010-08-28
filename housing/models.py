@@ -5,20 +5,32 @@ from django.db import models
 from stepping_out.admin.models import _get_rel
 
 
+NEUTRAL = '0'
+REQUESTED = '1'
+OFFERED = '2'
+HOUSING_CHOICES = (
+	(NEUTRAL, "I do not need housing and I can't offer housing"),
+	(REQUESTED, "I need housing"),
+	(OFFERED, "I can offer housing"),
+)
+
+
 class OfferedHousing(models.Model):
 	coordinator = models.ForeignKey('HousingCoordinator', related_name='offered_housing')
 	user = models.ForeignKey(User)
 	address = models.TextField()
-	smoking = models.BooleanField(help_text='Smoking or recent smoking')
+	smoking = models.BooleanField(verbose_name='Smoking or recent smoking')
 	cats = models.BooleanField()
 	dogs = models.BooleanField()
 	num_ideal = models.PositiveIntegerField(verbose_name='Ideal number of guests')
 	num_max = models.PositiveIntegerField(verbose_name='Maximum number of guests')
+	comments = models.TextField(verbose_name='Additional comments', blank=True)
 	
 	class Meta:
 		app_label = 'stepping_out'
 		verbose_name = "Housing Offer"
 		verbose_name_plural = "Offered Housing"
+		unique_together = ['coordinator', 'user']
 
 
 class RequestedHousing(models.Model):
@@ -33,6 +45,7 @@ class RequestedHousing(models.Model):
 	no_cats = models.IntegerField(max_length=1, choices=PREFERENCE_CHOICES)
 	no_dogs =  models.IntegerField(max_length=1, choices=PREFERENCE_CHOICES)
 	housed_with = models.ForeignKey(OfferedHousing, blank=True, null=True, related_name='housed')
+	comments = models.TextField(verbose_name='Additional comments', blank=True)
 	
 	class Meta:
 		app_label = 'stepping_out'
@@ -46,6 +59,14 @@ class HousingCoordinator(models.Model):
 	event_content_type = models.ForeignKey(ContentType, blank=True, null=True)
 	event_object_id = models.PositiveIntegerField(blank=True, null=True)
 	event = generic.GenericForeignKey('event_content_type', 'event_object_id')
+	
+	def get_housing_status(self, user):
+		if self.requesting_users.filter(pk=user.pk):
+			return REQUESTED
+		elif self.offering_users.filter(pk=user.pk):
+			return OFFERED
+		
+		return NEUTRAL
 	
 	class Meta:
 		app_label = 'stepping_out'

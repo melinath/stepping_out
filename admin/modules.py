@@ -92,10 +92,10 @@ class Module(object):
 	save.alters_data = True
 
 
-class ConfigurationModuleMetaclass(type):
+class QuerySetModuleMetaclass(type):
 	def __new__(cls, name, bases, attrs):
-		super_new = super(ConfigurationModuleMetaclass, cls).__new__
-		parents = [b for b in bases if isinstance(b, ConfigurationModuleMetaclass)]
+		super_new = super(QuerySetModuleMetaclass, cls).__new__
+		parents = [b for b in bases if isinstance(b, QuerySetModuleMetaclass)]
 		if not parents:
 			return super_new(cls, name, bases, attrs)
 		
@@ -108,9 +108,9 @@ class ConfigurationModuleMetaclass(type):
 		
 		if 'verbose_name' not in attrs or 'slug' not in attrs:
 			model = attrs.get('model', None)
-			default_name = capfirst(convert_camelcase(model.__name__))
+			default_name = capfirst(model._meta.verbose_name_plural)
 			if 'verbose_name' not in attrs:
-				new_class.verbose_name = 'Manage %s' % model._meta.verbose_name_plural
+				new_class.verbose_name = default_name
 			
 			if 'slug' not in attrs:
 				new_class.slug = slugify(default_name)
@@ -124,8 +124,8 @@ class ConfigurationModuleMetaclass(type):
 			setattr(cls, name, value)
 
 
-class ConfigurationModule(object):
-	__metaclass__ = ConfigurationModuleMetaclass
+class QuerySetModule(object):
+	__metaclass__ = QuerySetModuleMetaclass
 	model = None
 	limit_choices_to = None
 	

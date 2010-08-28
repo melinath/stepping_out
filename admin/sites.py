@@ -12,7 +12,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from stepping_out.auth.forms import PendUserCreationForm, TestHumanityForm
 from stepping_out.admin.admin import ModuleAdmin
-from stepping_out.admin.modules import Module, ConfigurationModule
+from stepping_out.admin.modules import Module, QuerySetModule
 from django import forms
 
 
@@ -124,7 +124,7 @@ class ModuleAdminSite(object):
 		"""
 		Registers a given module with a UserAdminSite instance.
 		"""
-		if not issubclass(module, Module) and not issubclass(module, ConfigurationModule):
+		if not issubclass(module, Module) and not issubclass(module, QuerySetModule):
 			raise TypeError('%s must be a subclass of %s' %
 				(module, Module.__name__))
 		
@@ -201,11 +201,10 @@ class ModuleAdminSite(object):
 		return self.get_urls()
 	
 	def get_context(self, request):
-		admins = []
+		navbar = ()
 		for admin in self.modules.values():
-			if admin.has_permission(request):
-				admins.append(admin)
-		return {'modules': admins}
+			navbar += admin.get_nav(request)
+		return {'navbar': navbar}
 	
 	def home(self, request):
 		try:

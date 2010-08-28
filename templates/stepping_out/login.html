@@ -18,8 +18,7 @@
 {% endfor %}
 <dl>
 {% for field in form.visible_fields %}
-	<dt>{{ field.label_tag }}</dt>
-	<dd>{{ field }}</dt>
+	{% include 'stepping_out/form_field.html' %}
 {% endfor %}
 </dl>
 <button type='submit'>Login</button>

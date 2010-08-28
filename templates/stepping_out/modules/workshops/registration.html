@@ -1,0 +1,91 @@
+{% extends 'stepping_out/modules/base.html' %}
+
+{% block content %}
+<form action='' method='post'>
+	{% csrf_token %}
+	{% if registration_form.non_field_errors %}
+	<ul class='errors'>
+		{% for error in registration_form.non_field_errors %}
+		<li class='error'>{{ error }}</li>
+		{% endfor %}
+	</ul>
+	{% endif %}
+	<dl>
+		<dt>What kind of person are you?</dt>
+		<dd>
+			{% with registration_form.person_type as field %}
+				{{ field }}
+				{% include 'stepping_out/form_field_help.html' %}
+				{% include 'stepping_out/form_field_errors.html' %}
+			{% endwith %}
+		</dd>
+		
+		<dt>What price package would you like?</dt>
+		<dd>
+			{% with registration_form.price_option as field %}
+				{{ field }}
+				{% include 'stepping_out/form_field_help.html' %}
+				{% include 'stepping_out/form_field_errors.html' %}
+			{% endwith %}
+		</dd>
+		
+		<dt>What track do you want?</dt>
+		<dd>
+			{% with registration_form.track as field %}
+				{{ field }}
+				{% include 'stepping_out/form_field_help.html' %}
+				{% include 'stepping_out/form_field_errors.html' %}
+			{% endwith %}
+		</dd>
+		
+		<dt>Which will you be dancing as?</dt>
+		<dd>
+			{% with registration_form.dancing_as as field %}
+				{{ field }}
+				{% include 'stepping_out/form_field_help.html' %}
+				{% include 'stepping_out/form_field_errors.html' %}
+			{% endwith %}
+		</dd>
+		
+		<dt>What is your housing situation?</dt>
+		<dd id='housing'>
+			{% with registration_form.housing as field %}
+				{{ field }}
+				{% include 'stepping_out/form_field_help.html' %}
+				{% include 'stepping_out/form_field_errors.html' %}
+			{% endwith %}
+			<div class='section collapse' id='offered_housing' rel='id_housing_2'>
+				<dl>
+				{% for field in offered_housing_form %}
+					<dt>{{ field.label_tag }}</dt>
+					<dd>
+						{{ field }}
+						{% include 'stepping_out/form_field_help.html' %}
+						{% if registration_form.housing.data == '2' %}{% include 'stepping_out/form_field_errors.html' %}{% endif %}
+					</dd>
+				{% endfor %}
+				</dl>
+			</div>
+			<div class='section collapse' id='requested_housing' rel='id_housing_1'>
+				<dl>
+				{% for field in requested_housing_form %}
+					<dt>{{ field.label_tag }}</dt>
+					<dd>
+						{{ field }}
+						{% include 'stepping_out/form_field_help.html' %}
+						{% if registration_form.housing.data == '1' %}{% include 'stepping_out/form_field_errors.html' %}{% endif %}
+					</dd>
+				{% endfor %}
+				</dl>
+			</div>
+		</dd>
+		
+		<dt>Please read and understand the following liability and media rights waiver.</dt>
+		<dd>
+			{% include 'stepping_out/modules/workshops/waiver.html' %}
+			{{ registration_form.waiver }}
+		</dd>
+		<dd><button type='submit'>Register</button></dd>
+	</dl>
+</form>
+{% endblock %}

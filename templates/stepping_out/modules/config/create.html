@@ -4,7 +4,9 @@
 <form action='' method='post'>
 	{% csrf_token %}
 	<dl>
-		{% include 'stepping_out/form_field.html' %}
+		{% for field in form %}
+			{% include 'stepping_out/form_field.html' %}
+		{% endfor %}
 	</dl>
 	<p><button type='submit'>Create Workshop</button></p>
 </form>

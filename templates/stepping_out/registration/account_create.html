@@ -4,14 +4,7 @@
 <form action='' method='post'>
 <dl>
 {% for field in form %}
-	<dt>{{ field.label_tag }}</dt>
-	<dd>{{ field }}</dt>
-	{% if field.errors %}
-	{% for error in field.errors %}
-	<dd class='error'>{{ error }}</dd>
-	{% endfor %}
-	{% endif %}
-	{% if field.help_text %}<dd class='help'>{{ field.help_text }}</dd>{% endif %}
+	{% include 'stepping_out/form_field.html' %}
 {% endfor %}
 	<dt>{{ humanity_form.get_question }}</dt>
 	<dd>{{ humanity_form.question }}{{ humanity_form.answer }}</dd>

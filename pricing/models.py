@@ -4,6 +4,7 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from stepping_out.pricing import people
 from stepping_out.pricing.fields import SlugListField
+import datetime
 
 
 class PricePackage(models.Model):
@@ -34,7 +35,7 @@ class PricePackage(models.Model):
 		super(PricePackage, self).save(*args, **kwargs)
 		
 		if refresh:
-			for option in self.options:
+			for option in self.options.all():
 				option.refresh_person_types()
 	
 	class Meta:
@@ -73,7 +74,6 @@ class Price(models.Model):
 	option = models.ForeignKey(PriceOption, related_name='prices')
 	person_type = models.CharField(max_length=15, editable=False)
 	price = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-	users = models.ManyToManyField(User, through='Payment')
 	
 	def get_person_type(self):
 		return people.registry[self.person_type]
@@ -83,6 +83,7 @@ class Price(models.Model):
 	
 	class Meta:
 		app_label = 'stepping_out'
+		unique_together = ['option', 'person_type']
 
 
 class Payment(models.Model):
@@ -91,10 +92,13 @@ class Payment(models.Model):
 		('check', 'Check'),
 		('online', 'Online')
 	)
-	price = models.ForeignKey(Price)
+	payment_for_id = models.PositiveIntegerField()
+	payment_for_ct = models.ForeignKey(ContentType)
+	payment_for = generic.GenericForeignKey('payment_for_ct', 'payment_for_id')
 	user = models.ForeignKey(User)
 	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
 	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
+	payment_made = models.DateTimeField(default=datetime.datetime.now)
 	
 	class Meta:
 		app_label = 'stepping_out'

@@ -7,7 +7,7 @@ body{
 	color:#000;
 }
 
-button, input, a, textarea{
+button, input, a, textarea, select{
 	font-size:inherit;
 	font-family:inherit;
 	font-weight:inherit;
@@ -117,11 +117,11 @@ th, td{
 	position:relative;
 }
 
-#navbar li.active{
+#navigation li.active{
 	list-style: disc;
 	color:#bbb;
 }
 
-#navbar li.active a, #navbar li a:hover{
+#navigation li.active a, #navigation li a:hover{
 	color:#6a6a6a;
 }
