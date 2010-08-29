@@ -25,11 +25,19 @@ class CreateWorkshopForm(ModelForm):
 class EditWorkshopForm(ModelForm):
 	def __init__(self, *args, **kwargs):
 		super(EditWorkshopForm, self).__init__(*args, **kwargs)
-		self.subformset_instance = PricePackageFormSet(instance=self.instance)
-		
+		kwargs['instance'] = self.instance
+		self.subformset_instance = PricePackageFormSet(*args, **kwargs)
+	
+	def is_valid(self):
+		return super(EditWorkshopForm, self).is_valid() and self.subformset_instance.is_valid()
+	
+	def save(self):
+		super(EditWorkshopForm, self).save()
+		self.subformset_instance.save()
+	
 	class Meta:
 		model = Workshop
-		exclude = ['registered_users', 'is_active']
+		exclude = ['registered_users']
 
 
 def is_checked(value):

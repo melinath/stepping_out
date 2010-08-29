@@ -91,6 +91,11 @@ th, td{
 .help{border-left-color:#aad;font-style:italic;}
 .pending{border-left-color:#eee;color: #aaa;font-style:italic;margin-bottom:2px;}
 
+.toggler{cursor:pointer;}
+.delete{text-transform:lowercase;display:block;float:right;margin-right:5em;}
+.delete input:checked + span{color:#d00;}
+.delete input{display:none;}
+
 #header, #content{
 	margin:0 15em;
 }

@@ -1,6 +1,13 @@
 {% extends 'stepping_out/modules/base.html' %}
 
 {% block content %}
+{% if form.non_field_errors %}
+<ul class='errors'>
+	{% for error in form.non_field_errors %}
+	<li class='error'>{{ error }}</li>
+	{% endfor %}
+</ul>
+{% endif %}
 <form action='' method='post'>
 	{% csrf_token %}
 	<dl>
@@ -8,18 +15,48 @@
 			{% include 'stepping_out/form_field.html' %}
 		{% endfor %}
 	</dl>
-	<fieldset>
-		<legend id='prices'>Prices</legend>
-		{% for form in form.subformset_instance.forms %}
-		<div class='collapse' rel='prices'>
+	<h3>Prices</h3>
+	{% if form.subformset_instance.non_form_errors %}
+	<ul class='errors'>
+		{% for error in form.subformset_instance.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
+	</ul>
+	{% endif %}
+	{{ form.subformset_instance.management_form }}
+	{% for form in form.subformset_instance.forms %}
+		<h4 id='price_{{ forloop.counter}}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New  Price{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
+		<div class='collapse' rel='price_{{ forloop.counter }}'>
+			{% for field in form.hidden_fields %}{{ field }}{% endfor %}
 			<dl>
-				{% for field in form %}
-					{% include 'stepping_out/form_field.html' %}
+				{% for field in form.visible_fields %}
+					{% if field.field != form.fields.DELETE %}
+						{% include 'stepping_out/form_field.html' %}
+					{% endif %}
 				{% endfor %}
 			</dl>
+			{% if form.subformset_instance %}
+			<h4>Options</h4>
+			{% if form.subformset_instance.non_form_errors %}
+			<ul class='errors'>
+				{% for error in form.subformset_instance.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
+			</ul>
+			{% endif %}
+			{{ form.subformset_instance.management_form }}
+			{% for form in form.subformset_instance.forms %}
+				<h5 id='price_{{ forloop.parentloop.counter}}_option_{{ forloop.counter }}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New  Price{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
+				<div class='collapse' rel='price_{{ forloop.parentloop.counter }}_option_{{ forloop.counter }}'>
+					{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+					<dl>
+						{% for field in form.visible_fields %}
+							{% if field.field != form.fields.DELETE %}
+								{% include 'stepping_out/form_field.html' %}
+							{% endif %}
+						{% endfor %}
+					</dl>
+				</div>
+			{% endfor %}
+			{% endif %}
 		</div>
-		{% endfor %}
-	</fieldset>
+	{% endfor %}
 	<p><button type='submit'>Save Workshop</button></p>
 </form>
 {% endblock %}

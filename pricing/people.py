@@ -45,12 +45,17 @@ class PersonRegistry(object):
 		return tuple(self._registry.items())
 
 
+class Anyone(Person):
+	order = 10
+
+
 class Student(Person):
 	order = 20
 
 
 class NonStudent(Person):
 	order = 30
+	verbose_name = 'Non-student'
 
 
 class PersonWithDomainEmail(Person):
@@ -65,5 +70,6 @@ class PersonWithDomainEmail(Person):
 
 
 registry = PersonRegistry()
+registry.register(Anyone)
 registry.register(Student)
 registry.register(NonStudent)

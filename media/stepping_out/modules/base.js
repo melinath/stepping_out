@@ -1,5 +1,7 @@
 $(function(){
+	// Collapsing divs
 	var toCollapse = $("div.collapse[rel]");
+	startOpen = toCollapse.has(".error")
 	
 	//var checkboxRels = $()
 	var radioRels = $()
@@ -31,6 +33,15 @@ $(function(){
 	})
 	
 	plainRels.click(function(){
-			toCollapse.filter('[rel='+this.id+']').slideToggle('medium')
+		toCollapse.filter('[rel='+this.id+']').slideToggle('medium')
+	})
+	plainRels.addClass('toggler')
+	
+	startOpen.show()
+	
+	// formset form deletion
+	deleters = $('.delete')
+	deleters.click(function(e){
+		e.stopPropagation()
 	})
 })

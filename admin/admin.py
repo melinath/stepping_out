@@ -240,6 +240,7 @@ class QuerySetModuleAdmin(ModuleAdmin):
 			if form.is_valid():
 				obj = form.save()
 				messages.add_message(request, messages.SUCCESS, 'Changes made successfully.')
+				return HttpResponseRedirect('')
 		else:
 			form = self.edit_form(instance=instance)
 		

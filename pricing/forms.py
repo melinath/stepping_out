@@ -1,32 +1,43 @@
 from django.forms.models import ModelForm, BaseInlineFormSet, inlineformset_factory
 from django.contrib.contenttypes.generic import BaseGenericInlineFormSet, generic_inlineformset_factory
 from stepping_out.pricing.models import PricePackage, PriceOption, Price
+from stepping_out.pricing.people import registry
 
 
-class PriceInlineFormSet(BaseInlineFormSet):
-	pass
+class PriceOptionForm(ModelForm):
+	def save(self, commit=True):
+		instance = super(PriceOptionForm, self).save(commit)
+		
+		for person_type in instance.package.person_types:
+			price = instance.prices.get_or_create(person_type=person_type)
+			price.price = self.cleaned_data[person_type]
+	
+	class Meta:
+		model = PriceOption
 
 
 class PriceOptionInlineFormSet(BaseInlineFormSet):
-	subformset = inlineformset_factory(PriceOption, Price, formset=PriceInlineFormSet)
-	
-	def __init__(self, *args, **kwargs):
-		super(PriceOptionInlineFormSet, self).__init__(*args, **kwargs)
-		self.subformset_instances = []
-		for option in self.queryset:
-			self.subformset_instances.append(self.subformset(instance=option))
+	def add_fields(self, form, index):
+		super(PriceOptionInlineFormSet, self).add_fields(form, index)
+		for person_type in self.instance.person_types:
+			form.fields[person_type] = Price._meta.get_field('price').formfield(label=registry[person_type])
+		
+		if form.instance.pk:
+			form.initial.update(dict(zip(self.instance.person_types, [price.price for price in form.instance.prices.all()])))
 
 
 class BasePricePackageFormSet(BaseGenericInlineFormSet):
 	"""
 	The model for this formset should always be price package. Can I enforce that?
 	"""
-	subformset = inlineformset_factory(PricePackage, PriceOption, formset=PriceOptionInlineFormSet)
-	def __init__(self, *args, **kwargs):
-		super(BasePricePackageFormSet, self).__init__(*args, **kwargs)
-		self.subformset_instances = []
-		for package in self.queryset:
-			self.subformset_instances.append(self.subformset(instance=package))
+	subformset = inlineformset_factory(PricePackage, PriceOption, form=PriceOptionForm, formset=PriceOptionInlineFormSet, extra=1)
+	
+	def add_fields(self, form, index):
+		super(BasePricePackageFormSet, self).add_fields(form, index)
+		if form.instance.pk:
+			form.subformset_instance = self.subformset(instance=form.instance)
+
+
 PricePackageFormSet = generic_inlineformset_factory(
 	model=PricePackage, formset=BasePricePackageFormSet, ct_field='event_content_type',
-	fk_field='event_object_id')
+	fk_field='event_object_id', extra=1)
