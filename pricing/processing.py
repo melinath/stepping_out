@@ -4,6 +4,7 @@ from django.utils.hashcompat import sha_constructor
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
+import datetime
 
 
 def payment_hash(app_label, model, object_id, user_id):
@@ -44,7 +45,13 @@ def process_payment(sender, **kwargs):
 				errors = True
 		
 		if not errors:
-			payment = Payment(payment_for=obj, user=user, paid=ipn_obj.auth_amount, method='online')
+			payment = Payment(
+				payment_for=obj,
+				user=user,
+				paid=ipn_obj.mc_gross,
+				payment_method='online',
+				payment_made = datetime.datetime.now()
+			)
 			payment.save()
 		else:
 			ipn_obj.save()

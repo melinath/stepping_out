@@ -8,7 +8,7 @@ from stepping_out.admin.admin import QuerySetModuleAdmin
 from stepping_out.admin.modules import QuerySetModule
 from stepping_out.admin.sites import site
 from stepping_out.contrib.workshops.forms import CreateWorkshopForm, EditWorkshopForm, WorkshopRegistrationForm
-from stepping_out.contrib.workshops.models import Workshop
+from stepping_out.contrib.workshops.models import Workshop, WorkshopUserMetaInfo
 from stepping_out.housing import REQUESTED, OFFERED, RequestedHousing, OfferedHousing
 from stepping_out.housing.forms import OfferedHousingForm, RequestedHousingForm
 from stepping_out.pricing.modules import PaymentMixin
@@ -96,6 +96,9 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 		})
 		
 		return render_to_response(self.registration_template, context, context_instance=RequestContext(request))
+	
+	def get_paypal_price(self, request, obj):
+		return WorkshopUserMetaInfo.objects.get(user=request.user, workshop=obj).price.price
 
 
 site.register(WorkshopModule, WorkshopModuleAdmin)

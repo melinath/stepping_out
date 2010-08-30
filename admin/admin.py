@@ -225,7 +225,7 @@ class QuerySetModuleAdmin(ModuleAdmin):
 			form = self.create_form(request.POST)
 			if form.is_valid():
 				obj = form.save()
-				return HttpResponseRedirect(reverse(self.edit_view, kwargs={'object_id': obj.id}))
+				return HttpResponseRedirect(reverse('%s_%s_edit' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id}))
 		else:
 			form = self.create_form()
 		context = self.get_context(request)

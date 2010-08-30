@@ -40,3 +40,4 @@ class PaymentAdmin(admin.ModelAdmin):
 
 admin.site.register(PricePackage, PricePackageAdmin)
 admin.site.register(PriceOption, PriceOptionAdmin)
+admin.site.register(Payment, PaymentAdmin)

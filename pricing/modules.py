@@ -1,5 +1,6 @@
 from django.conf.urls.defaults import patterns, url
 from django.contrib.contenttypes.models import ContentType
+from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -33,16 +34,18 @@ class PaymentMixin(object):
 	
 	def get_paypal_settings(self, request, obj):
 		ct = ContentType.objects.get_for_model(obj)
-		hash_args = [ct.app_label, ct.model, obj.id, request.user.id]
+		hash_args = [ct.app_label, ct.model, unicode(obj.id), unicode(request.user.id)]
 		hash = payment_hash(*hash_args)
 		item_number = ':'.join(hash_args)
+		site = Site.objects.get_current()
 		return {
-			'notify_url': reverse('paypal-ipn'),
-			'cancel_return': reverse('%s_%s_payment_cancelled' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id}),
-			'return_url': reverse('%s_%s_payment_complete' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id}),
+			'notify_url': 'http://%s/%s' % (site.domain, reverse('paypal-ipn')),
+			'cancel_return': 'http://%s/%s' % (site.domain, reverse('%s_%s_payment_cancelled' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id})),
+			'return_url': 'http://%s/%s' % (site.domain, reverse('%s_%s_payment_complete' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id})),
 			'custom': hash,
 			'item_number': item_number,
-			'item_name': unicode(obj)
+			'item_name': unicode(obj),
+			'amount': self.get_paypal_price(request, obj)
 		}
 	
 	def payment_view(self, request, object_id):
