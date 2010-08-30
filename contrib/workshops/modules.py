@@ -11,6 +11,7 @@ from stepping_out.contrib.workshops.forms import CreateWorkshopForm, EditWorksho
 from stepping_out.contrib.workshops.models import Workshop
 from stepping_out.housing import REQUESTED, OFFERED, RequestedHousing, OfferedHousing
 from stepping_out.housing.forms import OfferedHousingForm, RequestedHousingForm
+from stepping_out.pricing.modules import PaymentMixin
 
 
 class WorkshopModule(QuerySetModule):
@@ -18,7 +19,7 @@ class WorkshopModule(QuerySetModule):
 	slug = 'workshops'
 
 
-class WorkshopModuleAdmin(QuerySetModuleAdmin):
+class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 	order = 50
 	create_form = CreateWorkshopForm
 	edit_form = EditWorkshopForm
@@ -30,7 +31,7 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin):
 		def wrap(view, cacheable=False):
 			return self.admin_view(view, cacheable)
 		
-		urlpatterns = super(WorkshopModuleAdmin, self).urls + patterns('',
+		urlpatterns = super(WorkshopModuleAdmin, self).urls + PaymentMixin.get_urls(self) + patterns('',
 			url(r'^(?P<object_id>\d+)/register/$', wrap(self.register_view), name="%s_%s_register" % (self.admin_site.url_prefix, self.slug))
 		)
 		return urlpatterns
