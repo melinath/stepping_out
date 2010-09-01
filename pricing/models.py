@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
+from paypal.standard.ipn.models import PayPalIPN
 from stepping_out.pricing import people
 from stepping_out.pricing.fields import SlugListField
 import datetime
@@ -99,6 +100,7 @@ class Payment(models.Model):
 	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
 	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
 	payment_made = models.DateTimeField(default=datetime.datetime.now)
+	ipn = models.OneToOneField(PayPalIPN)
 	
 	class Meta:
 		app_label = 'stepping_out'

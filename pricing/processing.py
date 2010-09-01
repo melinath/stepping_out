@@ -9,13 +9,13 @@ import datetime
 
 def payment_hash(app_label, model, object_id, user_id):
 	return sha_constructor(settings.SECRET_KEY + unicode(user_id) + unicode(object_id) +
-		app_label + model).hexdigest()
+		app_label + model).hexdigest()[::4]
 
 
 def validate_item(ipn_obj):
-	hash_args = ipn_obj.item_number.split(':')
+	hash_args = ipn_obj.custom.split(':')
 	hash = payment_hash(*hash_args)
-	if hash != ipn_obj.custom:
+	if hash != ipn_obj.item_number:
 		return False
 	return True
 
