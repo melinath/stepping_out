@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_view_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from stepping_out.pricing.processing import payment_hash
 from stepping_out.pricing.models import Payment
@@ -29,7 +29,7 @@ class PaymentMixin(object):
 		urlpatterns = patterns('',
 			url(r'^(?P<object_id>\d+)/payment/$', wrap(self.payment_view),
 				name="%s_%s_payment" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^(?P<object_id>\d+)/payment/complete/$', csrf_exempt(wrap(self.payment_complete_view)),
+			url(r'^(?P<object_id>\d+)/payment/complete/$', csrf_exempt(self.payment_complete_view),
 				name="%s_%s_payment_complete" % (self.admin_site.url_prefix, self.slug)),
 			url(r'^(?P<object_id>\d+)/payment/cancel/$', wrap(self.payment_cancelled_view),
 				name='%s_%s_payment_cancelled' % (self.admin_site.url_prefix, self.slug))

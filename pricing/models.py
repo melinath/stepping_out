@@ -100,7 +100,7 @@ class Payment(models.Model):
 	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
 	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
 	payment_made = models.DateTimeField(default=datetime.datetime.now)
-	ipn = models.OneToOneField(PayPalIPN)
+	ipn = models.OneToOneField(PayPalIPN, blank=True, null=True)
 	
 	class Meta:
 		app_label = 'stepping_out'
