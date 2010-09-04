@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserChangeForm
 from django.contrib.auth.models import User
+from django.core.validators import validate_email
 from django import forms
 from stepping_out.auth.models import *
 from stepping_out.auth.widgets import SelectOther, AdminEmailInputWidget
