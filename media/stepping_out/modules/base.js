@@ -1,6 +1,6 @@
 $(function(){
 	// Collapsing divs
-	var toCollapse = $("div.collapse[rel]");
+	var toCollapse = $(".collapse[rel]");
 	startOpen = toCollapse.has(".error")
 	
 	//var checkboxRels = $()
@@ -14,7 +14,10 @@ $(function(){
 		//} else if(toggler.type == 'checkbox'){
 		//	checkboxRels = checkboxRels.add(toggler)
 		} else {
-			plainRels = plainRels.add(toggler)
+			plainRels = plainRels.add(toggler);
+			if ($(toggler.parentNode).hasClass('active')){
+				startOpen = startOpen.add($(toCollapse[i]));
+			}
 		}
 	}
 	
