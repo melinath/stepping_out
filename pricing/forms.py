@@ -8,9 +8,11 @@ class PriceOptionForm(ModelForm):
 	def save(self, commit=True):
 		instance = super(PriceOptionForm, self).save(commit)
 		
-		for person_type in instance.package.person_types:
-			price = instance.prices.get_or_create(person_type=person_type)
-			price.price = self.cleaned_data[person_type]
+		if instance.pk:
+			for person_type in instance.package.person_types:
+				price = instance.prices.get_or_create(person_type=person_type)
+				price.price = self.cleaned_data[person_type]
+		return instance
 	
 	class Meta:
 		model = PriceOption
@@ -35,7 +37,13 @@ class BasePricePackageFormSet(BaseGenericInlineFormSet):
 	def add_fields(self, form, index):
 		super(BasePricePackageFormSet, self).add_fields(form, index)
 		if form.instance.pk:
-			form.subformset_instance = self.subformset(instance=form.instance)
+			form.subformset_instance = self.subformset(self.data, self.files, form.instance, prefix="%s_%s" % (self.prefix, index))
+	
+	def save(self, commit=True):
+		for form in self.forms:
+			if form.instance.pk:
+				form.subformset_instance.save()
+		return super(BasePricePackageFormSet, self).save(commit)
 
 
 PricePackageFormSet = generic_inlineformset_factory(
