@@ -10,8 +10,9 @@ class PriceOptionForm(ModelForm):
 		
 		if instance.pk:
 			for person_type in instance.package.person_types:
-				price = instance.prices.get_or_create(person_type=person_type)
+				price = instance.prices.get_or_create(person_type=person_type)[0]
 				price.price = self.cleaned_data[person_type]
+				price.save()
 		return instance
 	
 	class Meta:

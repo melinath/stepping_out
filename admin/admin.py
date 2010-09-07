@@ -168,7 +168,7 @@ class QuerySetModuleAdmin(ModuleAdmin):
 	
 	def has_permission(self, request):
 		ct = ContentType.objects.get_for_model(self.module_class.model)
-		return request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)) or request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model))
+		return request.user.is_authenticated() and (request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)) or request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model)))
 	
 	@property
 	def urls(self):
@@ -177,7 +177,8 @@ class QuerySetModuleAdmin(ModuleAdmin):
 			def inner(request, *args, **kwargs):
 				if perm is not None and not request.user.has_perm('%s.%s_%s' % (ct.app_label, perm, ct.model)):
 					raise Http404
-				return self.admin_view(view, cacheable)
+				return view(request, *args, **kwargs)
+			inner = self.admin_view(inner)
 			return inner
 		
 		urlpatterns = patterns('',
