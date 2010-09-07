@@ -121,7 +121,7 @@ class MailingList(models.Model):
 	name = models.CharField(max_length=50)
 	address = models.CharField(max_length=100, validators=[EmailNameValidator()])
 	site = models.ForeignKey(Site, verbose_name="@", default=DEFAULT_SITE)
-	help_text = models.TextField(verbose_name='description')
+	help_text = models.TextField(verbose_name='description', blank=True)
 	
 	subscribed_users = models.ManyToManyField(
 		User,
