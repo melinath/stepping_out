@@ -26,6 +26,9 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 	edit_template = 'stepping_out/modules/workshops/edit.html'
 	registration_template = 'stepping_out/modules/workshops/registration.html'
 	
+	def has_permission(self, request):
+		return request.user.is_active and request.user.is_authenticated()
+	
 	@property
 	def urls(self):
 		def wrap(view, cacheable=False):
@@ -54,6 +57,10 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 					)
 			if register_nav:
 				subnav += (('Register', None, register_is_active, register_nav),)
+			
+			if not subnav:
+				return ()
+			
 			return ((name, main_url, main_is_active or register_is_active, subnav),)
 		return ()
 	

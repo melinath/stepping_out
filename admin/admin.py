@@ -7,6 +7,7 @@ from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext
 from django.contrib import messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
+from django.contrib.contenttypes.models import ContentType
 from django.forms.widgets import SelectMultiple
 
 
@@ -82,10 +83,7 @@ class ModuleAdmin(object):
 		return context
 	
 	def has_permission(self, request):
-		if request.user.is_active and request.user.is_authenticated():
-			return True
-		
-		return False
+		return request.user.is_active and request.user.is_authenticated()
 	
 	def admin_view(self, view, cacheable=False, test=None):
 		def inner(request, *args, **kwargs):
@@ -169,17 +167,23 @@ class QuerySetModuleAdmin(ModuleAdmin):
 		return self._default_form
 	
 	def has_permission(self, request):
-		return request.user.has_perm('change', self.module_class.model)
+		ct = ContentType.objects.get_for_model(self.module_class.model)
+		return request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)) or request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model))
 	
 	@property
 	def urls(self):
-		def wrap(view, cacheable=False):
-			return self.admin_view(view, cacheable)
+		def wrap(view, perm=None, cacheable=False):
+			ct = ContentType.objects.get_for_model(self.module_class.model)
+			def inner(request, *args, **kwargs):
+				if perm is not None and not request.user.has_perm('%s.%s_%s' % (ct.app_label, perm, ct.model)):
+					raise Http404
+				return self.admin_view(view, cacheable)
+			return inner
 		
 		urlpatterns = patterns('',
 			url(r'^$', wrap(self.base_view), name="%s_%s_root" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^create/$', wrap(self.create_view), name="%s_%s_create" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^(?P<object_id>\d+)/edit/$', wrap(self.edit_view), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
+			url(r'^create/$', wrap(self.create_view, 'add'), name="%s_%s_create" % (self.admin_site.url_prefix, self.slug)),
+			url(r'^(?P<object_id>\d+)/edit/$', wrap(self.edit_view, 'change'), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
 		)
 		return urlpatterns
 	
@@ -191,14 +195,15 @@ class QuerySetModuleAdmin(ModuleAdmin):
 			main_is_active = False
 			subnav = ()
 			info = self.admin_site.url_prefix, self.slug
-			if request.user.has_perm('add', self.module_class.model):
+			ct = ContentType.objects.get_for_model(self.module_class.model)
+			if request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)):
 				url = reverse('%s_%s_create' % info)
 				is_active = (url == request.path)
 				if is_active:
 					main_is_active = True
 				subnav += (('Create', url, is_active, ()),)
 			
-			if request.user.has_perm('change', self.module_class.model):
+			if request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model)):
 				edit_subnav = ()
 				edit_is_active = False
 				for instance in self.module_class.get_queryset():
