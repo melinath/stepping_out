@@ -3,13 +3,15 @@ from django.contrib import messages
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.urlresolvers import reverse
+from django.db.models import Sum
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
 from django.views.decorators.csrf import csrf_exempt, csrf_view_exempt
 from paypal.standard.forms import PayPalPaymentsForm
 from stepping_out.pricing.processing import payment_hash
-from stepping_out.pricing.models import Payment
+from stepping_out.pricing.models import Payment, Price
+import decimal
 
 
 class PaymentMixin(object):
@@ -36,7 +38,7 @@ class PaymentMixin(object):
 		)
 		return urlpatterns
 	
-	def get_paypal_settings(self, request, obj):
+	def get_paypal_settings(self, request, obj, amount):
 		ct = ContentType.objects.get_for_model(obj)
 		hash_args = [ct.app_label, ct.model, unicode(obj.id), unicode(request.user.id)]
 		hash = payment_hash(*hash_args)
@@ -49,15 +51,30 @@ class PaymentMixin(object):
 			'item_number': hash,
 			'custom': custom,
 			'item_name': unicode(obj),
-			'amount': self.get_paypal_price(request, obj)
+			'amount': amount
 		}
 	
 	def payment_view(self, request, object_id):
 		obj = self.module_class.get_queryset().get(id=object_id)
-		paypal_settings = self.get_paypal_settings(request, obj)
+		ct = ContentType.objects.get_for_model(obj)
+		price = self.get_paypal_price(request.user, obj)
+		payments = Payment.objects.filter(user=request.user, payment_for_ct=ct, payment_for_id=obj.id)
+		paid = payments.aggregate(Sum('paid'))['paid__sum']
+		remaining = price - paid
+		paypal_settings = self.get_paypal_settings(request, obj, remaining)
 		form = PayPalPaymentsForm(initial=paypal_settings)
+		
+		if remaining < 0:
+			remaining = decimal.Decimal('0.00')
+		
 		context = self.get_context(request)
-		context.update({'form': form})
+		context.update({
+			'form': form,
+			'price': price,
+			'paid': paid,
+			'remaining': remaining,
+			'payments': payments
+		})
 		return render_to_response(self.payment_template, context, context_instance=RequestContext(request))
 	
 	def payment_complete_view(self, request, object_id):

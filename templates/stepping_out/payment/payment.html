@@ -1,3 +1,47 @@
 {% extends 'stepping_out/base_site.html' %}
 
-{% block content %}{{ form.sandbox }}{% endblock %}
+{% block content %}
+{% if payments %}
+	<table>
+		<caption>Payments</caption>
+		<thead>
+			<tr>
+				<td>Method</td>
+				<td>Time</td>
+				<td>Amount</td>
+			</tr>
+		</thead>
+		<tfoot>
+			<tr>
+				<th>Price</th>
+				<td></td>
+				<td>{{ price }}</td>
+			</tr>
+			<tr>
+				<th>Total Paid</th>
+				<td></td>
+				<td>{{ paid }}</td>
+			</tr>
+			<tr>
+				<th>Remaining</th>
+				<td></td>
+				<td>{{ remaining }}</td>
+			</tr>
+		</tfoot>
+		<tbody>
+			{% for payment in payments %}
+			<tr>
+				<td>{{ payment.payment_method }}</td>
+				<td>{{ payment.payment_made|date:"F j, Y \a\t P" }}</td>
+				<td>{{ payment.paid }}</td>
+			</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+{% else %}
+<p>No payments recorded.</p>
+{% endif %}
+{% if remaining != 0 %}
+{{ form.sandbox }}
+{% endif %}
+{% endblock %}

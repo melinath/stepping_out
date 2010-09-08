@@ -98,8 +98,11 @@ class WorkshopUserMetaInfo(models.Model):
 	user = models.ForeignKey(User)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
-	payments = generic.GenericRelation(Payment, content_type_field='payment_for_ct', object_id_field='payment_for_id')
 	price = models.ForeignKey(Price)
+	
+	@property
+	def payments(self):
+		return Payment.objects.filter(user=self.user, payment_for=self.workshop)
 	
 	class Meta:
 		unique_together = ('workshop', 'user')

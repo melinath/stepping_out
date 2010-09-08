@@ -45,7 +45,9 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 			name, main_url, main_is_active, subnav = super(WorkshopModuleAdmin, self).get_nav(request)[0]
 			
 			register_nav = ()
+			payment_nav = ()
 			register_is_active = False
+			payment_is_active = False
 			for instance in self.module_class.get_queryset():
 				if instance.registration_is_open:
 					url = reverse('%s_%s_register' % info, kwargs={'object_id': instance.id})
@@ -55,8 +57,19 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 					register_nav += (
 						(unicode(instance), url, is_active),
 					)
+					
+					url = reverse('%s_%s_payment' % info, kwargs={'object_id': instance.id})
+					is_active = (url == request.path)
+					if is_active:
+						register_is_active = True
+					payment_nav += (
+						(unicode(instance), url, is_active),
+					)
 			if register_nav:
 				subnav += (('Register', None, register_is_active, register_nav),)
+			
+			if payment_nav:
+				subnav += (('Payment', None, payment_is_active, payment_nav),)
 			
 			if not subnav:
 				return ()
@@ -83,13 +96,13 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 					registration_form.save()
 					OfferedHousing.objects.filter(coordinator=workshop.housing, user=request.user).delete()
 					RequestedHousing.objects.filter(coordinator=workshop.housing, user=request.user).delete()
-					return HttpResponseRedirect('')
+					return HttpResponseRedirect(reverse('%s_%s_payment' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': workshop.id}))
 				
 				if housing_form.is_valid():
 					registration_form.save()
 					housing_form.save()
 					to_remove.objects.filter(coordinator=workshop.housing, user=request.user).delete()
-					return HttpResponseRedirect('')
+					return HttpResponseRedirect(reverse('%s_%s_payment' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': workshop.id}))
 		else:
 			registration_form = WorkshopRegistrationForm(request.user, workshop)
 			offered_housing_form = OfferedHousingForm(request.user, workshop)
@@ -104,8 +117,8 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 		
 		return render_to_response(self.registration_template, context, context_instance=RequestContext(request))
 	
-	def get_paypal_price(self, request, obj):
-		return WorkshopUserMetaInfo.objects.get(user=request.user, workshop=obj).price.price
+	def get_paypal_price(self, user, obj):
+		return WorkshopUserMetaInfo.objects.get(user=user, workshop=obj).price.price
 
 
 site.register(WorkshopModule, WorkshopModuleAdmin)
