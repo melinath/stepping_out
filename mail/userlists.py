@@ -2,7 +2,6 @@
 A class of tracked user lists to be selected in the admin interface. User List
 plugins must have a get_list method (accessed by the list property) which
 returns a list of User objects.
-TODO: Use signals to handle adding/dropping of userlist models for officer positions.
 """
 
 

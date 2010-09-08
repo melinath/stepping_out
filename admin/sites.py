@@ -262,17 +262,8 @@ class ModuleAdminSite(object):
 		if user is None:
 			message = ERROR_MESSAGE
 			if username is not None and u'@' in username:
-				# Mistakenly entered e-mail address instead of username? Look it up.
-				try:
-					user = User.objects.get(email=username)
-				except (User.DoesNotExist, User.MultipleObjectsReturned):
-					message = _("Usernames cannot contain the '@' character.")
-				else:
-					if user.check_password(password):
-						message = _("Your e-mail address is not your username."
-									" Try '%s' instead.") % user.username
-					else:
-						message = _("Usernames cannot contain the '@' character.")
+				# Then they tried to log in with an email address and it failed.
+				message = _("Please enter a correct email and password. Note that both fields are case-sensitive.")
 			return self.display_login_form(request, message)
 
 		# The user data is correct; log in the user in and continue.

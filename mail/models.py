@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import simplejson as json
 from stepping_out.mail.validators import EmailNameValidator
+from stepping_out.mail.userlists import UserListPlugin
 
 
 SUBSCRIPTION_CHOICES = (
@@ -50,7 +51,6 @@ models.signals.post_save.connect(sync_user_emails, sender=User)
 
 
 class UserList(models.Model):
-	from stepping_out.mail.userlists import UserListPlugin
 	USERLIST_CHOICES = [(k,unicode(v.__name__)) for k,v in UserListPlugin.plugins.items()]
 	name = models.CharField(max_length = 50)
 	plugin = models.CharField(

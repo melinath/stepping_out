@@ -17,9 +17,11 @@
 {{ field }}
 {% endfor %}
 <dl>
-{% for field in form.visible_fields %}
-	{% include 'stepping_out/form_field.html' %}
-{% endfor %}
+	<dt>Email</dt>
+	<dd>{{ form.username }}</dd>
+	
+	<dt>Password</dt>
+	<dd>{{ form.password }}</dd>
 </dl>
 <button type='submit'>Login</button>
 </form>
