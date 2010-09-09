@@ -9,6 +9,7 @@ from stepping_out.admin.sites import site
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
+from django.db.models import Q
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response
 from django.template import RequestContext
@@ -105,7 +106,8 @@ class UserSettingsAdmin(ModuleAdmin):
 class MailingListModule(Module):
 	verbose_name = "Mailing list subscriptions"
 	slug = 'subscriptions'
-	mailing_lists = MailingListChoiceOfManyField(MailingListProxy, required=False)
+	mailing_lists = MailingListChoiceOfManyField(MailingListProxy, required=False, limit_choices_to={'self_subscribe_enabled': True})
+	#auto_mailing_lists = MailingListChoiceOfManyField(MailingListProxy, required=False, editable=False, limit_choices_to={'self_subscribe_enabled': False})  
 
 
 class MailingListAdmin(ModuleAdmin):

@@ -7,6 +7,7 @@ from sys import stdin
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from cStringIO import StringIO
+from stepping_out.mail.utils import add_emails_to_list
 
 
 class Command(BaseCommand):
@@ -45,56 +46,23 @@ class Command(BaseCommand):
 			fp = StringIO()
 			fp.write(stdin.read())
 			fp.seek(0)
+			self.stdout.write('\n\n')
 		elif len(args) == 2:
 			fp = open(args[1], 'r')
 		else:
 			raise CommandError('Too many arguments')
 		
-		invalid = []
-		conflict = []
+		emails = set()
 		
 		for line in fp:
-			emails = line.split(options['separator'])
-			for email in emails:
-				email = email.strip()
-				try:
-					validate_email(email)
-				except ValidationError:
-					if options['verbosity'] > 1:
-						self.stderr.write('Invalid: %s\n' % email)
-						invalid.append(email)
-				else:
-					try:
-						user = User.objects.get(emails__email=email)
-					except User.DoesNotExist:
-						username = email.split('@')[0]
-						user, created = User.objects.get_or_create(username=username)
-						
-						if not created:
-							conflict.append(email)
-							continue
-						
-						user.email = email
-						user.save()
-						user.emails.create(email=email)
-					
-					mlist.subscribed_users.add(user)
+			emails |= set([email.strip() for email in line.split(options['separator'])])
+		
+		errors = add_emails_to_list(mlist, emails)
 		
 		if options['verbosity'] > 0:
-			if invalid:
-				if len(invalid) == 1:
-					self.stdout.write('\nOne address was ')
-				else:
-					self.stdout.write('\n%d addresses were ' % len(invalid))
-				
-				self.stdout.write('invalid:\n%s\n' % ', '.join(invalid))
-			
-			if conflict:
-				self.stdout.write('\nUsername conflicts were found when trying to make usernames for ')
-				
-				if len(conflict) == 1:
-					self.stdout.write('one address:\n')
-				else:
-					self.stdout.write('%d addresses:\n' % len(conflict))
-				
-				self.stdout.write('%s\n\n' % ', '.join(conflict))
+			if errors:
+				for e in errors:
+					self.stdout.write(e)
+		
+		if not errors:
+			self.stdout.write("Emails imported successfully.\n\n")

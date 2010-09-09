@@ -4,7 +4,6 @@ from django.conf import settings
 
 
 FILENAME = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', '.mail.log')
-#logging.basicConfig(level=logging.DEBUG, format=MAIL_LOG_FORMAT)
 
 LOGGER = logging.getLogger('stepping_out.mail')
 LOGGER.setLevel(logging.DEBUG)

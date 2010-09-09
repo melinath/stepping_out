@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django import forms
 from stepping_out.auth.forms import RequiredInlineFormSet
 from django.forms.models import inlineformset_factory, ModelForm
+from django.db.models import Q
 
 
 class BaseProxyField(object):
@@ -128,7 +129,7 @@ class ChoiceOfManyField(BaseProxyField):
 	_choices = None
 	
 	def __init__(self, model_proxy, required=True,
-				editable = True, help_text=None, limit_choices_to=None):
+				editable=True, help_text=None, limit_choices_to=None):
 		super(ChoiceOfManyField, self).__init__(model_proxy, required, editable, help_text)
 		self.limit_choices_to = limit_choices_to
 		self.model_proxy = model_proxy
@@ -138,10 +139,12 @@ class ChoiceOfManyField(BaseProxyField):
 		if self.limit_choices_to is not None:
 			if isinstance(self.limit_choices_to, Q):
 				qs = qs.filter(self.limit_choices_to)
+			elif isinstance(self.limit_choices_to, (list, tuple)):
+				qs = qs.filter(*self.limit_choices_to)
 			elif isinstance(self.limit_choices_to, dict):
 				qs = qs.filter(**self.limit_choices_to)
 			else:
-				raise TypeError('%s.limit_choices_to must be a dict or Q object' %
+				raise TypeError('%s.limit_choices_to must be a list, tuple, dict or Q object' %
 					self.__class__)
 		return qs
 	
