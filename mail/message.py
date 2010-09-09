@@ -5,9 +5,8 @@ import re
 from email.header import Header
 from email.message import Message
 from django.conf import settings
-from sys import stderr
+from stepping_out.mail.logs import LOGGER
 import logging
-import logging.handlers
 
 
 ADMINISTRATIVE_KEYWORDS = ['bounce']
@@ -15,23 +14,6 @@ CONTINUATION_WS = '\t'
 CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
 MAXLINELEN = 78
-
-LOG_FILENAME = getattr(settings, 'STEPPING_OUT_MAIL_LOG_PATH', '~/.mail.log')
-MAIL_LOG_FORMAT = getattr(
-	settings,
-	'STEPPING_OUT_MAIL_LOG_FORMAT',
-	'%(asctime)s %(msgid)s %(message)s'
-)
-logging.basicConfig(level=logging.DEBUG, format=MAIL_LOG_FORMAT)
-LOGGER = logging.getLogger('msg_logger')
-LOGGER.addHandler(
-	logging.handlers.RotatingFileHandler(
-		LOG_FILENAME,
-		maxBytes=10000,
-		backupCount=5
-	)
-)
-
 
 
 # This is a list of all addresses owned by sites this script deals with.

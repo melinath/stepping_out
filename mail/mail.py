@@ -8,15 +8,13 @@ import smtplib
 from django.conf import settings
 from stepping_out.mail.message import SteppingOutMessage
 from stepping_out.mail.notifications import delivery_failure, permissions_failure
+from cStringIO import StringIO
 
 
 MAX_SMTP_RECIPS = 99 # see http://people.dsv.su.se/~jpalme/ietf/mailing-list-behaviour.txt
-"""
-MAIL_LOG_PATH = '' #make sure this is writable by the mail server!
-"""
 
 
-def route_email(input = stdin):
+def route_email(input):
 	"""
 	Steps:
 		1. parse the input
@@ -57,7 +55,7 @@ def route_email(input = stdin):
 		# addresses?)
 		try:
 			user = User.objects.get(emails__email=msg.sender)
-			msg.log.info("Msg sender found in database for msg %s" % msg.id)
+			msg.log.info("User found for sender of msg %s" % msg.id)
 		except User.DoesNotExist:
 			user = AnonymousUser()
 			msg.log.info("Anonymous sender for msg %s" % msg.id)
@@ -86,7 +84,7 @@ def parse_email(input):
 	"""
 	input.seek(0)
 	msg = Parser(SteppingOutMessage).parse(input)
-	msg.log.info("Received message")
+	msg.log.info("Received message: %s" % msg)
 	return msg
 
 
