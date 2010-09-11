@@ -105,16 +105,7 @@ class SteppingOutUserAdmin(UserAdmin):
 User._meta.get_field('email')._unique = True
 
 
-class PendConfirmationDataInline(admin.TabularInline):
-	model = PendConfirmationData
-
-
-class PendConfirmationAdmin(admin.ModelAdmin):
-	inlines = [PendConfirmationDataInline]
-
-
 admin.site.unregister(User)
 admin.site.register(User, SteppingOutUserAdmin)
 admin.site.register(OfficerPosition, OfficerPositionAdmin)
 admin.site.register(Term, TermAdmin)
-admin.site.register(PendConfirmation, PendConfirmationAdmin)

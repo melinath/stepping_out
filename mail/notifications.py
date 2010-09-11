@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
 from django.conf import settings
+from django.contrib.sites.models import Site
 
 
 def delivery_failure(msg):
@@ -18,10 +19,13 @@ The message you sent was:
 def permissions_failure(msg):
 	FAILED = msg.rejected
 	msg.log.error("Permissions error at %s" % ', '.join(FAILED))
+	site = Site.objects.get_current()
 	body = """Hi there! You've just tried to post to the following addresses:
 %s
 
-Unfortunately, you don't have permission to post to those addresses. Sorry!
+Unfortunately, you don't have permission to post to those addresses. If you
+already have an account at %s, are you sure that this email address is attached
+to it?
 
 If you feel like this is an error, please email the webmaster.
 --Mail Daemon
@@ -29,5 +33,5 @@ If you feel like this is an error, please email the webmaster.
 P.S. - the message you sent was:
 
 %s
-""" % ('\n'.join(FAILED), msg.as_string())
+""" % ('\n'.join(FAILED), site.domain, msg.as_string())
 	send_mail('Message rejected: %s' % msg['subject'], body, settings.STEPPING_OUT_LISTADMIN_EMAIL, [msg.original_sender])

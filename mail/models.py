@@ -18,12 +18,12 @@ SUBSCRIPTION_CHOICES = (
 
 class UserEmail(models.Model):
 	email = models.EmailField(unique=True)
-	user = models.ForeignKey(User, related_name='emails')
+	user = models.ForeignKey(User, related_name='emails', blank=True, null=True)
 	
 	def delete(self):
 		user = self.user
 		super(UserEmail, self).delete()
-		if user.email == self.email:
+		if user and user.email == self.email:
 			user.email = user.emails.all()[0].email
 	
 	def __unicode__(self):
@@ -33,17 +33,19 @@ class UserEmail(models.Model):
 		app_label = 'mail'
 
 
-def validate_user_emails(instance, **kwargs):
+def validate_user_emails(sender, **kwargs):
+	instance = kwargs['instance']
 	try:
-		UserEmail.objects.exclude(user=instance).get(email=instance.email)
-	except UserEmail.DoesNotExist:
+		User.objects.exclude(pk=instance.pk).get(emails__email=instance.email)
+	except User.DoesNotExist:
 		pass
 	else:
 		raise ValidationError('A user with that email already exists.')
 
 
 def sync_user_emails(instance, created, **kwargs):
-	instance.emails.get_or_create(email=instance.email)
+	if not created:
+		instance.emails.get_or_create(email=instance.email)
 
 
 models.signals.pre_save.connect(validate_user_emails, sender=User)
@@ -141,6 +143,12 @@ class MailingList(models.Model):
 		blank = True,
 		null = True
 	)
+	subscribed_emails = models.ManyToManyField(
+		UserEmail,
+		related_name = 'subscribed_mailinglist_set',
+		blank = True,
+		null = True
+	)
 	
 	who_can_post = models.CharField(
 		max_length = 3,
@@ -183,7 +191,7 @@ class MailingList(models.Model):
 	@property
 	def recipients(self):
 		return self.subscribers | self.moderators
-		
+	
 	def get_user_set(self, prefix):
 		userset = set(getattr(self, '%s_users' % prefix).all())
 		for group in getattr(self, '%s_groups' % prefix).all():

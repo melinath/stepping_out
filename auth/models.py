@@ -1,27 +1,14 @@
 from django.db import models
 from django.db.models import PositiveIntegerField
 from django.contrib.auth.models import User, Permission
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.generic import GenericForeignKey
 from django.contrib.localflavor.us.models import PhoneNumberField
 from datetime import datetime
-import os, base64
 
 
 __all__ = (
 	'Term',
 	'OfficerUserMetaInfo',
-	'OfficerPosition',
-	'PendConfirmation',
-	'PendConfirmationData'
-)
-
-
-ADD_NEW = 'new'
-DELETE = 'delete'
-ACTION_CHOICES = (
-	(ADD_NEW, 'New'),
-	(DELETE, 'Delete')
+	'OfficerPosition'
 )
 
 
@@ -85,72 +72,6 @@ class OfficerPosition(models.Model):
 	@property
 	def current_users(self):
 		return self.users_for_terms(Term.objects.get_current())
-	
-	class Meta:
-		app_label = 'stepping_out'
-
-
-def randstr(leng):
-	"""Alternative:
-	http://stackoverflow.com/questions/785058/random-strings-in-python-2-6-is-this-ok"""
-	return base64.urlsafe_b64encode(str(os.urandom(leng)))[:leng]
-
-
-class PendConfirmation(models.Model):
-	"""This model contains all information necessary for saving information
-	pending confirmation via an emailed link. It also handles the sending of
-	the information, the generation of the confirmation key, and the...
-	anything else? Currently only supports pending of text (and integer?) data.
-	"""
-	code = models.CharField(max_length=75, unique=True)
-	content_type = models.ForeignKey(ContentType)
-	object_id = PositiveIntegerField(blank=True, null=True)
-	item = GenericForeignKey()
-	action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-	timestamp = models.DateTimeField(auto_now_add=True)
-	
-	def __unicode__(self):
-		action = dict(self._meta.get_field('action').choices)[self.action]
-		return "%s %s" % (action, self.item or self.content_type)
-	
-	def save(self, commit=True):
-		if not self.code:
-			while True:
-				self.code = randstr(50)
-				try:
-					PendConfirmation.objects.get(code=self.code)
-				except PendConfirmation.DoesNotExist:
-					break
-		return super(PendConfirmation, self).save(commit)
-	
-	def confirm(self):
-		if self.object_id is not None:
-			instance = self.content_type.get_object_for_this_type(pk=self.object_id)
-		else:
-			instance = self.content_type.model_class()()
-		
-		for kv in self.kv_pairs.all():
-			setattr(instance, kv.key, kv.value)
-		
-		if self.action == ADD_NEW:
-			# FIXME: Validate the model I've created!
-			instance.save()
-		elif self.action == DELETE:
-			instance.delete()
-		self.delete()
-		return instance
-	
-	class Meta:
-		app_label = 'stepping_out'
-
-
-class PendConfirmationData(models.Model):
-	confirmation = models.ForeignKey(PendConfirmation, related_name='kv_pairs')
-	key = models.CharField(max_length=255)
-	value = models.TextField()
-	
-	def __unicode__(self):
-		return u"%s: %s" % (self.key, self.value)
 	
 	class Meta:
 		app_label = 'stepping_out'

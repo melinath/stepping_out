@@ -70,7 +70,7 @@ def route_email(input):
 			msg.log.error("Permissions failure for all addresses")
 			return
 		
-		recip_emails = get_user_emails(msg.recips)
+		recip_emails = get_user_emails(msg.recips) | get_misc_emails(msg._meta['addresses']['lists'])
 		
 		forward(msg, recip_emails)
 	except:
@@ -100,6 +100,13 @@ def get_user_emails(userset):
 		#)
 	
 	return email_set
+
+
+def get_misc_emails(mailing_lists):
+	emails = set()
+	for mailing_list in mailing_lists:
+		emails |= set(mailing_list.subscribed_emails.all())
+	return emails
 
 
 def forward(msg, recips):
