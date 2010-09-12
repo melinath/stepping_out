@@ -14,6 +14,9 @@ class SlugListField(models.TextField):
 			kwargs['choices'] = self._choice_func()
 		super(SlugListField, self).__init__(*args, **kwargs)
 	
+	def get_choices(self):
+		return super(SlugListField, self).get_choices(include_blank=False)
+	
 	def _get_choices(self, **kwargs):
 		# TODO: is there a more elegant way to force late evaluation?
 		if hasattr(self, '_choice_func'):
