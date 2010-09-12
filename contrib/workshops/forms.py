@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
-from stepping_out.contrib.workshops.models import Workshop, WorkshopUserMetaInfo
+from stepping_out.contrib.workshops.models import Workshop, WorkshopUserMetaInfo, WorkshopTrack
 from stepping_out.contrib.workshops.exceptions import RegistrationClosed
 from stepping_out.housing import HOUSING_CHOICES
 from stepping_out.housing.forms import OfferedHousingForm, RequestedHousingForm
@@ -22,18 +22,39 @@ class CreateWorkshopForm(ModelForm):
 		fields = ['name', 'tagline']
 
 
+WorkshopTrackInlineFormSet = forms.models.inlineformset_factory(Workshop, WorkshopTrack, extra=1)
+
+
 class EditWorkshopForm(ModelForm):
+	inlines = [WorkshopTrackInlineFormSet, PricePackageFormSet]
+	
 	def __init__(self, *args, **kwargs):
 		super(EditWorkshopForm, self).__init__(*args, **kwargs)
+		
 		kwargs['instance'] = self.instance
-		self.subformset_instance = PricePackageFormSet(*args, **kwargs)
+		self.inline_instances = []
+		for formset in self.inlines:
+			self.inline_instances.append(formset(*args, **kwargs))
+	
+	def get_inline_instances(self):
+		for formset_instance in self.inline_instances:
+			opts = formset_instance.model._meta
+			yield (opts.verbose_name_plural, opts.verbose_name, formset_instance.model.__name__, formset_instance,)
 	
 	def is_valid(self):
-		return super(EditWorkshopForm, self).is_valid() and self.subformset_instance.is_valid()
+		if not super(EditWorkshopForm, self).is_valid():
+			return False
+		
+		for formset in self.inline_instances:
+			if not formset.is_valid():
+				return False
+		
+		return True
 	
 	def save(self):
 		super(EditWorkshopForm, self).save()
-		self.subformset_instance.save()
+		for formset in self.inline_instances:
+			formset.save()
 	
 	class Meta:
 		model = Workshop
@@ -90,10 +111,6 @@ class WorkshopRegistrationForm(ModelForm):
 		self.fields['track'].widget = forms.RadioSelect(choices=self._meta.model._meta.get_field('track').get_choices(include_blank=False))
 		self.fields['person_type'].widget.choices = [choice for choice in price_package._meta.get_field('person_types').choices if choice[0] in price_package.person_types]
 		self.fields['price_option'] = forms.models.ModelChoiceField(empty_label=None, queryset=price_package.options.all(), widget=forms.RadioSelect())
-	
-	#def get_housing_radios(self):
-	#	bound_field = self['housing']
-	#	return bound_field.field.widget.get_renderer(bound_field.html_name, bound_field.data, attrs={'id': 'id_housing'})
 	
 	def save(self, *args, **kwargs):
 		self.instance.price = self.cleaned_data['price_option'].prices.get(person_type=self.cleaned_data['person_type'])

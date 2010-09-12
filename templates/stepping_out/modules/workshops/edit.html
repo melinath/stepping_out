@@ -15,47 +15,51 @@
 			{% include 'stepping_out/form_field.html' %}
 		{% endfor %}
 	</dl>
-	<h3>Prices</h3>
-	{% if form.subformset_instance.non_form_errors %}
-	<ul class='errors'>
-		{% for error in form.subformset_instance.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
-	</ul>
-	{% endif %}
-	{{ form.subformset_instance.management_form }}
-	{% for form in form.subformset_instance.forms %}
-		<h4 id='price_{{ forloop.counter}}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New  Price{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
-		<div class='collapse' rel='price_{{ forloop.counter }}'>
-			{% for field in form.hidden_fields %}{{ field }}{% endfor %}
-			<dl>
-				{% for field in form.visible_fields %}
-					{% if field.field != form.fields.DELETE %}
-						{% include 'stepping_out/form_field.html' %}
-					{% endif %}
+	{% for verbose_name_plural, verbose_name, classname, formset in form.get_inline_instances %}
+	<div class='inline'>
+		<h3>{{ verbose_name_plural|capfirst }}</h3>
+		{% if formset.non_form_errors %}
+		<ul class='errors'>
+			{% for error in formset.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
+		</ul>
+		{% endif %}
+		{{ formset.management_form }}
+		{% for form in formset.forms %}
+			<h4 id='{{ classname|slugify }}_{{ forloop.counter}}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New {{ verbose_name }}{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
+			<div class='collapse' rel='{{ classname|slugify }}_{{ forloop.counter }}'>
+				{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+				<dl>
+					{% for field in form.visible_fields %}
+						{% if field.field != form.fields.DELETE %}
+							{% include 'stepping_out/form_field.html' %}
+						{% endif %}
+					{% endfor %}
+				</dl>
+				{% if form.subformset_instance %}
+				<h4>Options</h4>
+				{% if form.subformset_instance.non_form_errors %}
+				<ul class='errors'>
+					{% for error in form.subformset_instance.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
+				</ul>
+				{% endif %}
+				{{ form.subformset_instance.management_form }}
+				{% for form in form.subformset_instance.forms %}
+					<h5 id='price_{{ forloop.parentloop.counter}}_option_{{ forloop.counter }}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New  Price{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
+					<div class='collapse' rel='price_{{ forloop.parentloop.counter }}_option_{{ forloop.counter }}'>
+						{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+						<dl>
+							{% for field in form.visible_fields %}
+								{% if field.field != form.fields.DELETE %}
+									{% include 'stepping_out/form_field.html' %}
+								{% endif %}
+							{% endfor %}
+						</dl>
+					</div>
 				{% endfor %}
-			</dl>
-			{% if form.subformset_instance %}
-			<h4>Options</h4>
-			{% if form.subformset_instance.non_form_errors %}
-			<ul class='errors'>
-				{% for error in form.subformset_instance.non_form_errors %}<li class='error'>{{ error }}</li>{% endfor %}
-			</ul>
-			{% endif %}
-			{{ form.subformset_instance.management_form }}
-			{% for form in form.subformset_instance.forms %}
-				<h5 id='price_{{ forloop.parentloop.counter}}_option_{{ forloop.counter }}'>{% if form.initial.name %}{{ form.initial.name }}{% else %}New  Price{% endif %}<label class='delete' for='{{ form.DELETE.id }}'>{{ form.DELETE }} <span>Delete</span></label></h4>
-				<div class='collapse' rel='price_{{ forloop.parentloop.counter }}_option_{{ forloop.counter }}'>
-					{% for field in form.hidden_fields %}{{ field }}{% endfor %}
-					<dl>
-						{% for field in form.visible_fields %}
-							{% if field.field != form.fields.DELETE %}
-								{% include 'stepping_out/form_field.html' %}
-							{% endif %}
-						{% endfor %}
-					</dl>
-				</div>
-			{% endfor %}
-			{% endif %}
-		</div>
+				{% endif %}
+			</div>
+		{% endfor %}
+	</div>
 	{% endfor %}
 	<p><button type='submit'>Save Workshop</button></p>
 </form>

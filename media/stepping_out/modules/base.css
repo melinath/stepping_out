@@ -112,6 +112,10 @@ th, td, caption{
 	margin-bottom:20px;
 }
 
+.inline{
+	margin-bottom:20px;
+}
+
 .container.one, #content{
 	margin-top:2em;
 }
