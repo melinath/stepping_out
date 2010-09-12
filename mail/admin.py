@@ -28,6 +28,7 @@ class MailingListAdmin(admin.ModelAdmin):
         'subscribed_users',
         'subscribed_groups',
         'subscribed_userlists',
+        'subscribed_emails',
         'moderator_users',
         'moderator_groups',
         'moderator_userlists'
@@ -52,6 +53,7 @@ class MailingListAdmin(admin.ModelAdmin):
                 'subscribed_users',
                 'subscribed_groups',
                 'subscribed_userlists',
+                'subscribed_emails',
             ),
             'classes': COLLAPSE_OPEN_CLASSES
         }),
@@ -67,6 +69,11 @@ class MailingListAdmin(admin.ModelAdmin):
     radio_fields = {'who_can_post':admin.VERTICAL}
     prepopulated_fields = {'address': ('name',)}
 
+
+class UserEmailAdmin(admin.ModelAdmin):
+	pass
+
+
 """
 class MailingListInline(admin.TabularInline):
     model = MailingList
@@ -77,3 +84,4 @@ GROUP_INLINES = [MailingListInline,]
 """
 admin.site.register(MailingList, MailingListAdmin)
 admin.site.register(UserList)
+admin.site.register(UserEmail, UserEmailAdmin)

@@ -34,17 +34,11 @@ class UserEmailForm(forms.ModelForm):
 		pass
 	
 	def save(self, commit=True):
-		import pdb
-		pdb.set_trace()
 		try:
 			# Never create a double email.
 			instance = UserEmail.objects.get(email=self.instance.email)
 		except UserEmail.DoesNotExist:
 			instance = super(UserEmailForm, self).save(commit=False)
-			
-			# New instances shouldn't be tied to a user until confirmation.
-			instance.user = None
-			instance.save()
 		return instance
 	
 	class Meta:
@@ -90,6 +84,14 @@ class PrimaryUserEmailFormSet(RequiredInlineFormSet):
 			self.deleted_objects = to_delete
 		
 		return []
+	
+	def save_new(self, form, commit=True):
+		# Use commit=False so we can be sure that the email has no associated
+		# user.
+		obj = form.save(commit=False)
+		obj.user = None
+		obj.save()
+		return obj
 	
 	@property
 	def radio_value(self):

@@ -196,16 +196,16 @@ class MailingList(models.Model):
 		userset = set(getattr(self, '%s_users' % prefix).all())
 		for group in getattr(self, '%s_groups' % prefix).all():
 			userset |= set(group.user_set.all())
-			
+		
 		for userlist in getattr(self, '%s_userlists' % prefix).all():
 			userset |= set(userlist.list)
-			
-		return userset
 		
+		return userset
+	
 	def can_post(self, user):
 		if self.who_can_post == 'all':
 			return True
-			
+		
 		if self.who_can_post == 'sub' and user in self.subscribers:
 			return True
 		
