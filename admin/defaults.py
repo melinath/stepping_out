@@ -1,4 +1,4 @@
-from stepping_out.auth.forms import PrimaryUserEmailFormSet
+from stepping_out.auth.forms import PrimaryUserEmailFormSet, UserEmailForm
 from stepping_out.mail.fields import MailingListChoiceOfManyField
 from stepping_out.mail.models import MailingList, UserEmail
 from stepping_out.admin.admin import ModuleAdmin, QuerySetModuleAdmin
@@ -96,7 +96,8 @@ class UserSettingsModule(Module):
 	first_name = ProxyField(UserProxy)
 	last_name = ProxyField(UserProxy)
 	emails = InlineField(UserEmailProxy, fields=['email'], extra=1,
-		formset=PrimaryUserEmailFormSet, help_text="Email sent to a mailing list will be accepted as from you for any of your emails. You will receive email from mailing lists at your primary address.")
+		formset=PrimaryUserEmailFormSet, help_text="Email sent to a mailing list will be accepted as from you for any of your emails. You will receive email from mailing lists at your primary address.",
+		form=UserEmailForm)
 
 
 class UserSettingsAdmin(ModuleAdmin):

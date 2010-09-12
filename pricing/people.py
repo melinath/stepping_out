@@ -1,5 +1,9 @@
 from django.db.models.options import get_verbose_name as convert_camelcase
 from django.template.defaultfilters import capfirst
+from django.dispatch import Signal
+
+
+person_added = Signal(providing_args=["person_type"])
 
 
 class Person(object):
@@ -33,6 +37,8 @@ class PersonRegistry(object):
 			if slug in self._registry and not isinstance(self._registry[slug], cls):
 				raise AlreadyRegistered("Another class is already registered as %s" % slug)
 			self._registry[slug] = cls()
+			person_added.send(sender=self, person_type=cls)
+			
 	
 	def unregister(self, cls):
 		slug = unicode(getattr(cls, 'slug', cls.__name__.lower()))

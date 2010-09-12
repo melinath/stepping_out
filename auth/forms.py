@@ -27,9 +27,69 @@ class RequiredInlineFormSet(RequiredFormSet, forms.models.BaseInlineFormSet):
 	pass
 
 
+class UserEmailForm(forms.ModelForm):
+	def validate_unique(self):
+		# This should just do nothing. This form doesn't ever create anything,
+		# so we don't need to make sure the instance is unique.
+		pass
+	
+	def save(self, commit=True):
+		import pdb
+		pdb.set_trace()
+		try:
+			# Never create a double email.
+			instance = UserEmail.objects.get(email=self.instance.email)
+		except UserEmail.DoesNotExist:
+			instance = super(UserEmailForm, self).save(commit=False)
+			
+			# New instances shouldn't be tied to a user until confirmation.
+			instance.user = None
+			instance.save()
+		return instance
+	
+	class Meta:
+		model = UserEmail
+
+
 class PrimaryUserEmailFormSet(RequiredInlineFormSet):
 	radio_name = 'primary_email'
 	radio = RadioSelect()
+	
+	def __init__(self, *args, **kwargs):
+		self._messages = []
+		super(PrimaryUserEmailFormSet, self).__init__(*args, **kwargs)
+	
+	def save_existing_objects(self, commit=True):
+		self.changed_objects = []
+		self.deleted_objects = []
+		if not self.get_queryset():
+			return []
+		
+		to_delete = []
+		for form in self.initial_forms:
+			pk_name = self._pk_field.name
+			raw_pk_value = form._raw_value(pk_name)
+			
+			pk_value = form.fields[pk_name].clean(raw_pk_value)
+			pk_value = getattr(pk_value, 'pk', pk_value)
+			
+			obj = self._existing_object(pk_value)
+			if self.can_delete:
+				raw_delete_value = form._raw_value(DELETION_FIELD_NAME)
+				should_delete = form.fields[DELETION_FIELD_NAME].clean(raw_delete_value)
+				if should_delete:
+					to_delete.append(obj)
+			# people shouldn't be allowed to change existing items. just confuses things.
+			# Otherwise, changed objects would be saved here.
+		
+		if self.required and len(to_delete) >= self.initial_form_count():
+			self._messages.append((messages.ERROR, "You can't delete all the items!"))
+		else:
+			for obj in to_delete:
+				obj.delete()
+			self.deleted_objects = to_delete
+		
+		return []
 	
 	@property
 	def radio_value(self):
@@ -75,6 +135,16 @@ class PrimaryUserEmailFormSet(RequiredInlineFormSet):
 		self.instance.save()
 		
 		return saved
+	
+	@property
+	def messages(self):		# should I make this a copy?
+		messages = self._messages
+		for form in self.forms:
+			try:
+				messages.extend(form.messages)
+			except:
+				pass
+		return messages
 
 
 class UserEmailPasswordResetForm(PasswordResetForm):

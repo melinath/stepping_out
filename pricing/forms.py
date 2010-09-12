@@ -47,6 +47,11 @@ class BasePricePackageFormSet(BaseGenericInlineFormSet):
 		return super(BasePricePackageFormSet, self).save(commit)
 
 
+#class PricePackageForm(models.ModelForm):
+#	def __init__():
+#	class Meta:
+#		model = PricePackage
+
 PricePackageFormSet = generic_inlineformset_factory(
 	model=PricePackage, formset=BasePricePackageFormSet, ct_field='event_content_type',
 	fk_field='event_object_id', extra=1)

@@ -7,7 +7,6 @@ from stepping_out.pricing import people
 from stepping_out.pricing.fields import SlugListField
 import datetime
 
-
 class PricePackage(models.Model):
 	"""
 	A price package can be attached to anything: a lesson, a dance, a workshop.

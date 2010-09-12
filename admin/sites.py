@@ -178,6 +178,7 @@ class ModuleAdminSite(object):
 			url(r'^$', wrap(self.home), name='%s_root' % self.url_prefix),
 			url(r'^logout/$', self.logout,
 				name='%s_logout' % self.url_prefix),
+		
 			url(r'^password/reset/$', 'django.contrib.auth.views.password_reset',
 				{'template_name': 'stepping_out/registration/password_reset_form.html'},
 				name='%s_password_reset' % self.url_prefix),
@@ -190,9 +191,12 @@ class ModuleAdminSite(object):
 			url(r'^password/reset/(?P<uidb36>\w+)/(?P<token>[^/]+)$', auth_views.password_reset_confirm,
 				{'template_name': 'stepping_out/registration/password_reset_confirm.html'},
 				name='%s_password_reset_confirm' % self.url_prefix),
+			
 			url(r'^create/$', self.account_create, name='%s_account_create' % self.url_prefix),
 			#url(r'^create/done/$', self.account_create_done, name='%s_account_create_done' % self.url_prefix),
 			url(r'^create/confirm/(?P<uidb36>\w+)-(?P<token>.+)/$', self.account_confirm, name='%s_account_confirm' % self.url_prefix),
+			
+			url(r'^emails/add/(?P<uidb36>\w+)-(?P<eidb36>\w+)-(?P<token>.+)/$', self.add_email, name='%s_email_add' % self.url_prefix)
 		)
 		
 		for admin in self._registry.values():
@@ -355,6 +359,25 @@ class ModuleAdminSite(object):
 		
 		# Should there be a pretty "link expired" page?
 		raise Http404
+	
+	def add_email(self, request, uidb36=None, eidb36=None, token=None, token_generator=email_token_generator):
+		assert uidb36 is not None and eidb36 is not None and token is not None
 		
+		try:
+			uid_int = base36_to_int(uidb36)
+			eid_int = base36_to_int(eidb36)
+		except ValueError:
+			raise Http404
+		
+		user = get_object_or_404(User, id=uid_int)
+		email = get_object_or_404(UserEmail, id=eid_int)
+		
+		if token_generator.check_token(user, email, token):
+			email.user = user
+			email.save()
+			messages.add_message(request, messages.SUCCESS, 'Email added successfully.')
+			return HttpResponseRedirect(reverse('%s_root' % self.url_prefix))
+		
+		raise Http404
 
 site = ModuleAdminSite()
