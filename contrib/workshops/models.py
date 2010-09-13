@@ -77,7 +77,7 @@ class Workshop(models.Model):
 		return self.is_active and (self.registration_start <= date.today() <= self.online_registration_end)
 	
 	class Meta:
-		get_latest_by = ['workshop_start']
+		get_latest_by = 'workshop_start'
 
 
 class WorkshopTrack(models.Model):
