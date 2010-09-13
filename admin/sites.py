@@ -244,7 +244,7 @@ class ModuleAdminSite(object):
 			context_instance = RequestContext(request)
 		)
 	
-	def login(self, request):
+	def login(self, request, *args, **kwargs):
 		"""
 		Displays the login form for the given HttpRequest.
 		"""
