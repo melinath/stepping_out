@@ -55,11 +55,13 @@ class PaymentMixin(object):
 		}
 	
 	def payment_view(self, request, object_id):
+		#import pdb
+		#pdb.set_trace()
 		obj = self.module_class.get_queryset().get(id=object_id)
 		ct = ContentType.objects.get_for_model(obj)
 		price = self.get_paypal_price(request.user, obj)
 		payments = Payment.objects.filter(user=request.user, payment_for_ct=ct, payment_for_id=obj.id)
-		paid = payments.aggregate(Sum('paid'))['paid__sum']
+		paid = payments.aggregate(Sum('paid'))['paid__sum'] or decimal.Decimal('0.00')
 		remaining = price - paid
 		paypal_settings = self.get_paypal_settings(request, obj, remaining)
 		form = PayPalPaymentsForm(initial=paypal_settings)
