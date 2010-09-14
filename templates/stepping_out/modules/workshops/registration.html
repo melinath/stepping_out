@@ -11,6 +11,10 @@
 	</ul>
 	{% endif %}
 	<dl>
+		{% if registration_form.first_name and registration_form.last_name %}
+			{% with registration_form.first_name as field %}{% include 'stepping_out/form_field.html' %}{% endwith %}
+			{% with registration_form.last_name as field %}{% include 'stepping_out/form_field.html' %}{% endwith %}
+		{% endif %}
 		<dt>What kind of person are you?</dt>
 		<dd>
 			{% with registration_form.person_type as field %}
@@ -85,7 +89,7 @@
 			{% include 'stepping_out/modules/workshops/waiver.html' %}
 			{{ registration_form.waiver }}
 		</dd>
-		<dd><button type='submit'>Register and Continue</button></dd>
+		<dd><button type='submit'>{% if registration_form.instance.pk %}Submit changes{% else %}Register and Continue{% endif %}</button></dd>
 	</dl>
 </form>
 {% endblock %}

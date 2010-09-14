@@ -111,10 +111,19 @@ class WorkshopRegistrationForm(ModelForm):
 		self.fields['track'].widget = forms.RadioSelect(choices=self._meta.model._meta.get_field('track').get_choices(include_blank=False))
 		self.fields['person_type'].widget.choices = [choice for choice in price_package._meta.get_field('person_types').choices if choice[0] in price_package.person_types]
 		self.fields['price_option'] = forms.models.ModelChoiceField(empty_label=None, queryset=price_package.options.all(), widget=forms.RadioSelect())
+		
+		if not user.first_name and not user.last_name:
+			self.fields['first_name'] = user._meta.get_field('first_name').formfield()
+			self.fields['last_name'] = user._meta.get_field('last_name').formfield()
 	
 	def save(self, *args, **kwargs):
 		self.instance.price = self.cleaned_data['price_option'].prices.get(person_type=self.cleaned_data['person_type'])
 		super(WorkshopRegistrationForm, self).save(*args, **kwargs)
+		
+		if 'first_name' in self.cleaned_data and 'last_name' in self.cleaned_data:
+			user = self.instance.user
+			user.first_name, user.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
+			user.save()
 	
 	class Meta:
 		model = WorkshopUserMetaInfo

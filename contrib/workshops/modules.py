@@ -1,4 +1,5 @@
 from django.conf.urls.defaults import patterns, url
+from django.contrib import messages
 from django.core.urlresolvers import reverse
 from django.forms.models import modelform_factory
 from django.http import HttpResponseRedirect
@@ -44,37 +45,32 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 			info = (self.admin_site.url_prefix, self.slug)
 			name, main_url, main_is_active, subnav = super(WorkshopModuleAdmin, self).get_nav(request)[0]
 			
-			register_nav = ()
-			payment_nav = ()
-			register_is_active = False
-			payment_is_active = False
+			model_is_active = False
 			for instance in self.module_class.get_queryset():
+				model_nav = ()
 				if instance.registration_is_open:
 					url = reverse('%s_%s_register' % info, kwargs={'object_id': instance.id})
 					is_active = (url == request.path)
 					if is_active:
-						register_is_active = True
-					register_nav += (
-						(unicode(instance), url, is_active),
+						model_is_active = True
+					model_nav += (
+						('Register', url, is_active),
 					)
 					
 					url = reverse('%s_%s_payment' % info, kwargs={'object_id': instance.id})
 					is_active = (url == request.path)
 					if is_active:
-						register_is_active = True
-					payment_nav += (
-						(unicode(instance), url, is_active),
+						model_is_active = True
+					model_nav += (
+						('Payment', url, is_active),
 					)
-			if register_nav:
-				subnav += (('Register', None, register_is_active, register_nav),)
-			
-			if payment_nav:
-				subnav += (('Payment', None, payment_is_active, payment_nav),)
+				if model_nav:
+					subnav += ((unicode(instance), None, is_active, model_nav),)
 			
 			if not subnav:
 				return ()
 			
-			return ((name, main_url, main_is_active or register_is_active, subnav),)
+			return ((name, main_url, main_is_active or model_is_active, subnav),)
 		return ()
 	
 	def register_view(self, request, object_id):
@@ -86,6 +82,13 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 			requested_housing_form = RequestedHousingForm(request.user, workshop, request.POST)
 			
 			if registration_form.is_valid():
+				if registration_form.instance.pk:
+					redirect_url = ''
+					message = 'Changes saved.'
+				else:
+					redirect_url = reverse('%s_%s_payment' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': workshop.id})
+					message = 'Your registration information has been processed.'
+				
 				if registration_form.cleaned_data['housing'] == REQUESTED:
 					housing_form = requested_housing_form
 					to_remove = OfferedHousing
@@ -96,13 +99,15 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 					registration_form.save()
 					OfferedHousing.objects.filter(coordinator=workshop.housing, user=request.user).delete()
 					RequestedHousing.objects.filter(coordinator=workshop.housing, user=request.user).delete()
-					return HttpResponseRedirect(reverse('%s_%s_payment' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': workshop.id}))
+					messages.add_message(request, messages.SUCCESS, message)
+					return HttpResponseRedirect(redirect_url)
 				
 				if housing_form.is_valid():
 					registration_form.save()
 					housing_form.save()
 					to_remove.objects.filter(coordinator=workshop.housing, user=request.user).delete()
-					return HttpResponseRedirect(reverse('%s_%s_payment' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': workshop.id}))
+					messages.add_message(request, messages.SUCCESS, message)
+					return HttpResponseRedirect(redirect_url)
 		else:
 			registration_form = WorkshopRegistrationForm(request.user, workshop)
 			offered_housing_form = OfferedHousingForm(request.user, workshop)
