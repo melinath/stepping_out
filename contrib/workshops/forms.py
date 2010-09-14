@@ -96,6 +96,11 @@ class WorkshopRegistrationForm(ModelForm):
 			initial.update(kwargs.get('initial', {}))
 			kwargs['initial'] = initial
 		
+		if workshop.tracks.count() == 1:
+			initial = kwargs.get('initial', {})
+			initial['track'] = workshop.tracks.all()[0].id
+			kwargs['initial'] = initial
+		
 		kwargs['instance'] = instance
 		
 		super(WorkshopRegistrationForm, self).__init__(*args, **kwargs)
@@ -111,18 +116,10 @@ class WorkshopRegistrationForm(ModelForm):
 		self.fields['person_type'].widget.choices = [choice for choice in price_package._meta.get_field('person_types').choices if choice[0] in price_package.person_types]
 		self.fields['price_option'] = forms.models.ModelChoiceField(empty_label=None, queryset=price_package.options.all(), widget=forms.RadioSelect())
 		self.fields['track'] = forms.models.ModelChoiceField(workshop.tracks.all(), widget=forms.RadioSelect, empty_label=None)
-		if workshop.tracks.count() == 1:
-			self.fields['track'].initial = workshop.tracks.all()[0]
 		
 		if not user.first_name and not user.last_name:
 			self.fields['first_name'] = user._meta.get_field('first_name').formfield()
 			self.fields['last_name'] = user._meta.get_field('last_name').formfield()
-	
-	def clean_track(self):
-		import pdb
-		pdb.set_trace()
-		track = self.cleaned_data['track']
-		return track
 	
 	def save(self, *args, **kwargs):
 		self.instance.price = self.cleaned_data['price_option'].prices.get(person_type=self.cleaned_data['person_type'])

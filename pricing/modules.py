@@ -55,8 +55,6 @@ class PaymentMixin(object):
 		}
 	
 	def payment_view(self, request, object_id):
-		#import pdb
-		#pdb.set_trace()
 		obj = self.module_class.get_queryset().get(id=object_id)
 		ct = ContentType.objects.get_for_model(obj)
 		price = self.get_paypal_price(request.user, obj)

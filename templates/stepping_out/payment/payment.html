@@ -15,17 +15,17 @@
 			<tr>
 				<th>Price</th>
 				<td></td>
-				<td>{{ price }}</td>
+				<td>${{ price }}</td>
 			</tr>
 			<tr>
 				<th>Total Paid</th>
 				<td></td>
-				<td>{{ paid }}</td>
+				<td>${{ paid }}</td>
 			</tr>
 			<tr>
 				<th>Remaining</th>
 				<td></td>
-				<td>{{ remaining }}</td>
+				<td>${{ remaining }}</td>
 			</tr>
 		</tfoot>
 		<tbody>
@@ -33,13 +33,14 @@
 			<tr>
 				<td>{{ payment.payment_method }}</td>
 				<td>{{ payment.payment_made|date:"F j, Y \a\t P" }}</td>
-				<td>{{ payment.paid }}</td>
+				<td>${{ payment.paid }}</td>
 			</tr>
 			{% endfor %}
 		</tbody>
 	</table>
 {% else %}
 <p>No payments recorded.</p>
+<p>According to your registration, your price is ${{ price }}.</p>
 {% endif %}
 {% if remaining != 0 %}
 {{ form.render }}

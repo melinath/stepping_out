@@ -122,6 +122,16 @@ class WorkshopModuleAdmin(QuerySetModuleAdmin, PaymentMixin):
 		
 		return render_to_response(self.registration_template, context, context_instance=RequestContext(request))
 	
+	def payment_view(self, request, object_id):
+		workshop = get_object_or_404(self.module_class.model, id=int(object_id))
+		try:
+			self.get_paypal_price(request.user, workshop)
+		except WorkshopUserMetaInfo.DoesNotExist:
+			messages.add_message(request, messages.ERROR, 'Please register for the workshop before paying.')
+			return HttpResponseRedirect(reverse("%s_%s_register" % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': object_id}))
+		else:
+			return PaymentMixin.payment_view(self, request, object_id)
+	
 	def get_paypal_price(self, user, obj):
 		return WorkshopUserMetaInfo.objects.get(user=user, workshop=obj).price.price
 
