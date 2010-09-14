@@ -32,7 +32,7 @@
 				{% include 'stepping_out/form_field_errors.html' %}
 			{% endwith %}
 		</dd>
-		
+		{% if registration_form.track.queryset.count > 1 %}
 		<dt>What track do you want?</dt>
 		<dd>
 			{% with registration_form.track as field %}
@@ -41,6 +41,9 @@
 				{% include 'stepping_out/form_field_errors.html' %}
 			{% endwith %}
 		</dd>
+		{% else %}
+		{{ registration_form.track.as_hidden }}
+		{% endif %}
 		
 		<dt>Which will you be dancing as?</dt>
 		<dd>
