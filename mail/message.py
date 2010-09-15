@@ -48,7 +48,10 @@ class SteppingOutMessage(Message):
 		
 		self._meta = {
 			'original_sender': '',
-			'recips': set(),
+			'recips': {
+				'users': set(),
+				'emails': set()
+			},
 			'addresses': {
 				'omit': set(),# set of (address, header) tuples that will be put back in place but not sent the message.
 				'lists': set(), # set of (address, list, header) tuples for generating recips
@@ -94,7 +97,7 @@ class SteppingOutMessage(Message):
 	
 	@property
 	def recips(self):
-		return self._meta['recips']
+		return self._meta['recips']['users'] | self._meta['recips']['emails']
 	
 	@property
 	def sender(self):
@@ -230,7 +233,8 @@ class SteppingOutMessage(Message):
 		
 		for mlist in lists:
 			if mlist[1].can_post(user):
-				recips |= mlist[1].recipients
+				recips['users'] |= mlist[1].recipients
+				recips['emails'] |= set(mlist[1].subscribed_emails.all())
 			else:
 				rejected.add(mlist[0])
 		

@@ -70,7 +70,7 @@ def route_email(input):
 			msg.log.error("Permissions failure for all addresses")
 			return
 		
-		recip_emails = get_user_emails(msg.recips) | get_misc_emails(msg._meta['addresses']['lists'])
+		recip_emails = set([recip.email for recip in msg.recips if recip.email])
 		
 		forward(msg, recip_emails)
 	except:
@@ -86,27 +86,6 @@ def parse_email(input):
 	msg = Parser(SteppingOutMessage).parse(input)
 	msg.log.info("Received message: %s" % msg)
 	return msg
-
-
-def get_user_emails(userset):
-	email_set = set()
-	for user in userset:
-		if user.email:
-			email_set.add(user.email)
-		
-		#I'm not sure I want to let people receive email at more than one address...
-		#email_set |= set(
-		#	[email.email for email in user.emails.filter(receives_email=True)]
-		#)
-	
-	return email_set
-
-
-def get_misc_emails(mailing_lists):
-	emails = set()
-	for mailing_list in mailing_lists:
-		emails |= set(mailing_list.subscribed_emails.all())
-	return emails
 
 
 def forward(msg, recips):
