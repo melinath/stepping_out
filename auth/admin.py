@@ -7,7 +7,6 @@ from django import forms
 from stepping_out.auth.models import *
 from stepping_out.auth.widgets import SelectOther, AdminEmailInputWidget
 from stepping_out.mail.admin import UserEmailInline
-from stepping_out.mail.validators import UserEmailValidator
 
 
 COLLAPSE_CLOSED_CLASSES = ('collapse', 'collapse-closed', 'closed',)
@@ -56,18 +55,12 @@ class SteppingOutUserAdminForm(UserChangeForm):
 			label='Primary email',
 			widget=SelectOther(other=AdminEmailInputWidget, choices=CHOICES),
 			required=False,
-			validators = [validate_email, UserEmailValidator(instance=instance)]
+			validators = [validate_email]
 		) 
 		super(SteppingOutUserAdminForm, self).__init__(
 			data, files, auto_id, prefix, initial, error_class, label_suffix,
 			empty_permitted, instance
 		)
-	
-	def save(self, commit=True):
-		instance = super(SteppingOutUserAdminForm, self).save(commit)
-		#if commit: - should this be deferred somehow? The admin uses commit=False
-		email = instance.emails.get_or_create(email=instance.email)
-		return instance
 
 
 USER_INLINES = [

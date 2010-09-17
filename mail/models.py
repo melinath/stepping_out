@@ -33,22 +33,16 @@ class UserEmail(models.Model):
 		app_label = 'mail'
 
 
-def validate_user_emails(sender, **kwargs):
-	instance = kwargs['instance']
-	try:
-		User.objects.exclude(pk=instance.pk).get(emails__email=instance.email)
-	except User.DoesNotExist:
-		pass
-	else:
-		raise ValidationError('A user with that email already exists.')
-
-
 def sync_user_emails(instance, created, **kwargs):
 	if not created:
-		instance.emails.get_or_create(email=instance.email)
+		try:
+			email = UserEmail.objects.get(email=instance.email)
+		except UserEmail.DoesNotExist:
+			email = UserEmail(email=instance.email)
+		email.user = instance
+		email.save()
 
 
-models.signals.pre_save.connect(validate_user_emails, sender=User)
 models.signals.post_save.connect(sync_user_emails, sender=User)
 
 
