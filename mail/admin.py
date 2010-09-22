@@ -71,7 +71,7 @@ class MailingListAdmin(admin.ModelAdmin):
 
 
 class UserEmailAdmin(admin.ModelAdmin):
-	pass
+	search_fields = ['email']
 
 
 """
