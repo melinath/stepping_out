@@ -1,6 +1,5 @@
 from django.core.mail.utils import DNS_NAME
 from django.db.models import Q
-from django.contrib.auth.models import User, AnonymousUser
 from sys import stdin
 import email
 from email.parser import Parser
@@ -21,7 +20,7 @@ def route_email(input):
 		2. get all the mailing lists the message is sent to.
 		3. for each mailing list, send the message through to all users.
 			(but of course only if the sender has permission.)
-
+	
 	New Step List:
 		1. Receive message.
 		2. parse to+cc fields
@@ -37,12 +36,19 @@ def route_email(input):
 	try:
 		msg.parse_addrs()
 		
-		if msg.failed_delivery:
-			delivery_failure(msg)
+		if msg.missing_addresses:
+			delivery_failure(msg, msg.missing_addresses)
 		
-		if not msg.deliver_to:
-			# Then do nothing but log it.
-			msg.log.error("Delivery Error: All addresses failed")
+		if msg.commands:
+			import pdb
+			pdb.set_trace()
+			for command in msg.commands:
+				command(email=msg.original_sender)
+		
+		if not msg.mailing_lists:
+			# Then stop here
+			if msg.missing_addresses:
+				msg.log.error("Delivery Error: All addresses failed (or were commands)")
 			return
 		
 		# From here on, we know the mailing lists in question. The question is: who
@@ -50,29 +56,23 @@ def route_email(input):
 		# send to? So: 1. What is the sending address? Could be envelope sender,
 		# sender, from...
 		
-		
-		# Is the email registered with a user? (Should I make it a list of possible
-		# addresses?)
-		try:
-			user = User.objects.get(emails__email=msg.sender)
-			msg.log.info("User found for sender of msg %s" % msg.id)
-		except User.DoesNotExist:
-			user = AnonymousUser()
-			msg.log.info("Anonymous sender for msg %s" % msg.id)
-		
 		# Does the user have permission to post to each mailing list? If not, note.
-		if not msg.can_post(user):
-			permissions_failure(msg)
+		rejected = set()
 		
-		if not msg.deliver_to or not msg.recips:
-			# then they were all rejected for that user, or there are no recipients
-			# for some other reason. Do nothing else.
-			msg.log.error("Permissions failure for all addresses")
+		for mailing_list in msg.mailing_lists.copy():
+			if not mailing_list.can_post(msg.original_sender):
+				rejected.add(mailing_list.full_address)
+				msg.mailing_lists.remove(mailing_list)
+		
+		if rejected:
+			permissions_failure(msg, rejected)
+		
+		if not msg.mailing_lists:
 			return
 		
-		recip_emails = set([recip.email for recip in msg.recips if recip.email])
-		
-		forward(msg, recip_emails)
+		recipients = get_recipients(msg.mailing_lists, exclude=msg.skip_addresses)
+		msg.cook_headers()
+		forward(msg, recipients)
 	except:
 		msg.log.exception('')
 
@@ -88,6 +88,35 @@ def parse_email(input):
 	return msg
 
 
+def add_recipient_emails(qs, recipient_set):
+	for item in qs:
+		if item.email:
+			recipient_set.add(item.email)
+
+
+def get_recipients(mailing_lists, exclude):
+	recipients = set()
+	for mailing_list in mailing_lists:
+		add_recipient_emails(mailing_list.subscribed_emails.exclude(email__in=exclude), recipients)
+		add_recipient_emails(mailing_list.subscribed_users.exclude(email__in=exclude), recipients)
+		
+		for group in mailing_list.subscribed_groups.all():
+			add_recipient_emails(group.users.exclude(email__in=exclude), recipients)
+		
+		for position in mailing_list.subscribed_officer_positions.all():
+			add_recipient_emails(position.users.exclude(email__in=exclude), recipients)
+		
+		add_recipient_emails(mailing_list.moderator_emails.exclude(email__in=exclude), recipients)
+		add_recipient_emails(mailing_list.moderator_users.exclude(email__in=exclude), recipients)
+		
+		for group in mailing_list.moderator_groups.all():
+			add_recipient_emails(group.users.exclude(email__in=exclude), recipients)
+		
+		for position in mailing_list.moderator_officer_positions.all():
+			add_recipient_emails(position.users.exclude(email__in=exclude), recipients)
+	return recipients
+
+
 def forward(msg, recips):
 	connection = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, local_hostname=DNS_NAME.get_fqdn())
 	
@@ -95,14 +124,14 @@ def forward(msg, recips):
 	
 	# Really, this should be sent separately to each list so that the bounce is
 	# correct, but for now, just pick a random list.
-	env_sender_list = msg._meta['addresses']['lists'].pop()
-	env_sender = env_sender_list[1].address + '-bounce@' + env_sender_list[1].site.domain
-	
+	env_sender_list = msg.mailing_lists.pop()
+	env_sender = env_sender_list.address + '-bounce@' + env_sender_list.site.domain
+
 	while len(recips) > MAX_SMTP_RECIPS:
 		chunk = set(list(recips)[0:MAX_SMTP_RECIPS])
 		connection.sendmail(env_sender, chunk, text)
 		recips -= chunk
-	
+
 	refused = connection.sendmail(env_sender, recips, text)
 	connection.quit()
 	if refused:

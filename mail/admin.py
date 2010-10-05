@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from models import MailingList, UserList, UserEmail
+from models import MailingList, UserEmail
 
 
 COLLAPSE_OPEN_CLASSES = ('collapse', 'open', 'collapse-open',)
@@ -27,18 +27,19 @@ class MailingListAdmin(admin.ModelAdmin):
     filter_horizontal = (
         'subscribed_users',
         'subscribed_groups',
-        'subscribed_userlists',
+        'subscribed_officer_positions',
         'subscribed_emails',
         'moderator_users',
         'moderator_groups',
-        'moderator_userlists'
+        'moderator_officer_positions',
+        'moderator_emails',
     )
     fieldsets = (
         (None, {
             'fields' : (
                 'name',
-                'address',
-                'site',
+                ('address',
+                'site',)
             )
         }),
         ('Options', {
@@ -52,7 +53,7 @@ class MailingListAdmin(admin.ModelAdmin):
             'fields' : (
                 'subscribed_users',
                 'subscribed_groups',
-                'subscribed_userlists',
+                'subscribed_officer_positions',
                 'subscribed_emails',
             ),
             'classes': COLLAPSE_OPEN_CLASSES
@@ -61,7 +62,8 @@ class MailingListAdmin(admin.ModelAdmin):
             'fields' : (
                 'moderator_users',
                 'moderator_groups',
-                'moderator_userlists'
+                'moderator_officer_positions',
+                'moderator_emails',
             ),
             'classes': COLLAPSE_OPEN_CLASSES
         })
@@ -83,5 +85,4 @@ USER_INLINES = [MailingListInline,]
 GROUP_INLINES = [MailingListInline,]
 """
 admin.site.register(MailingList, MailingListAdmin)
-admin.site.register(UserList)
 admin.site.register(UserEmail, UserEmailAdmin)

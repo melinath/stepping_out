@@ -1,15 +1,15 @@
-from email.message import Message
-from stepping_out.mail.models import MailingList
-from email.utils import getaddresses
-import re
 from email.header import Header
 from email.message import Message
+from email.utils import getaddresses, parseaddr
 from django.conf import settings
+from django.utils.functional import curry
+from stepping_out.mail.commands import run_command, COMMANDS
 from stepping_out.mail.logs import LOGGER
+from stepping_out.mail.models import MailingList
 import logging
+import re
 
 
-ADMINISTRATIVE_KEYWORDS = ['bounce']
 CONTINUATION_WS = '\t'
 CONTINUATION = ',\n' + CONTINUATION_WS
 COMMASPACE = ', '
@@ -43,27 +43,16 @@ class SteppingOutMessage(Message):
 	generate metadata based on its own contents to prepare it for shipping.
 	Important! It doesn't ACT on the metadata. It only creates it.
 	"""
-	def __init__(self):
-		Message.__init__(self)
-		
-		self._meta = {
-			'original_sender': '',
-			'recips': {
-				'users': set(),
-				'emails': set()
-			},
-			'addresses': {
-				'omit': set(),# set of (address, header) tuples that will be put back in place but not sent the message.
-				'lists': set(), # set of (address, list, header) tuples for generating recips
-				'fail': set(), # set of addresses that failed.
-				'rejected': set() # set of (address, list, header) tuples for the lists that the user doesn't have permission to access.
-			},
-			'_addresses': False,
-			'_sender': False
-		}
-		
-		for kw in ADMINISTRATIVE_KEYWORDS:
-			self._meta['addresses'][kw] = set()
+	_addresses_parsed = False
+	_sender_parsed = False
+	
+	original_sender = ''
+	recipient_emails = set()
+	
+	commands = set() # This will be a set of curried functions
+	skip_addresses = set() # These addresses will already be receiving the email and shouldn't get a copy.
+	mailing_lists = set() # This will be a set of MailingLists that are targeted to receive an email
+	missing_addresses = set() # This is a set of email addresses at the current domain which can't be matched to lists
 	
 	@property
 	def log(self):
@@ -78,26 +67,6 @@ class SteppingOutMessage(Message):
 	@property
 	def id(self):
 		return str(self['Message-ID'])
-	
-	@property
-	def original_sender(self):
-		return self._meta['original_sender']
-	
-	@property
-	def failed_delivery(self):
-		return self._meta['addresses']['fail']
-	
-	@property
-	def deliver_to(self):
-		return self._meta['addresses']['lists']
-	
-	@property
-	def rejected(self):
-		return self._meta['addresses']['rejected']
-	
-	@property
-	def recips(self):
-		return self._meta['recips']['users'] | self._meta['recips']['emails']
 	
 	@property
 	def sender(self):
@@ -116,21 +85,20 @@ class SteppingOutMessage(Message):
 			except IndexError:
 				continue
 		return ''
-
+	
 	def __getitem__(self, key):
 		# Ensure that header values are unicodes.
 		value = Message.__getitem__(self, key)
 		if isinstance(value, str):
 			return unicode(value, 'ascii')
 		return value
-
+	
 	def get(self, name, failobj=None):
 		# Ensure that header values are unicodes.
 		value = Message.get(self, name, failobj)
 		if isinstance(value, str):
 			return unicode(value, 'ascii')
 		return value
-		
 	
 	def get_addr_set(self, arg):
 		# return just the email address; drop the realname. Will patch in from
@@ -143,11 +111,9 @@ class SteppingOutMessage(Message):
 		self.parse_to_and_cc()
 	
 	def get_sender_addr(self):
-		if self._meta['_sender']:
-			return
-		
-		self._meta['original_sender'] = self.sender
-		self._meta['_sender'] = True
+		if not self._sender_parsed:
+			self.original_sender = parseaddr(self.sender)[1]
+			self._sender_parsed = True
 	
 	def parse_to_and_cc(self):
 		"""
@@ -157,47 +123,51 @@ class SteppingOutMessage(Message):
 			2. things that are lists.
 			3. things that are automated list functions
 			4. things that fail to find a target.
-			
+	
 		TODO: What about multiline address lists? Do I need to worry about unwrapping?
 		Mailman comments claim a getaddresses bug...
 		"""
-		if self._meta['_addresses']: #Then we were already here.
+		if self._addresses_parsed:
+			#Then we were already here.
 			return
 		
 		headers = ['to', 'cc', 'resent-to', 'resent-cc']
-		mlists = MailingList.objects.by_domain()
+		mailing_lists = MailingList.objects.by_domain()
 		
-		for header in headers: # so we put everything back right.
+		for header in headers:
 			addresses = self.get_addr_set(header)
 			for address in addresses:
+				if address in OUR_ADDRESSES:
+					continue
+				
 				name, domain = address.split('@')
 				
-				if domain not in mlists or (name, domain,) in OUR_ADDRESSES:
-					# then it can't be a list! They'll get the message elsehow.
-					self._meta['addresses']['omit'].add((address, header))
+				if domain not in mailing_lists:
+					# Then ignore it - they're getting the message elsehow.
+					self.skip_addresses.append(address)
 					continue
 				
-				if name not in mlists[domain]:
-					# Then it can't be a list, either. Unless it's administrative.
-					namepart = name.rpartition('-')
-					
-					if namepart[2] in ADMINISTRATIVE_KEYWORDS and name != namepart[2] and namepart[0] in mlists[domain]:
-						# It's an administrative thing!
-						self._meta['addresses'][namepart[2]].add((address, mlists[domain][namepart[0]], header))
-					
-					# it's not :-(
-					self._meta['addresses']['fail'].add(address)
+				if name in mailing_lists[domain]:
+					# Then plan to send the email to this list
+					self.mailing_lists.add(mailing_lists[domain][name])
 					continue
+				elif '-' in name:
+					# Could be a command?
+					name, command = name.rsplit('-')
+					
+					if command and command in COMMANDS and name in mailing_lists[domain]:
+						self.commands.add(curry(run_command, mailing_list=mailing_lists[domain][name], command=command))
+						continue
 				
-				self._meta['addresses']['lists'].add((address, mlists[domain][name], header))
+				self.missing_addresses.add(address)
 		
-		self._meta['_addresses'] = True
+		self._addresses_parsed = True
 	
 	def cook_headers(self):
 		"""
 		Remove: DKIM
 		"""
-		list_addrs = set([tuple[1].full_address for tuple in self._meta['addresses']['lists']])
+		list_addrs = set([mailing_list.full_address for mailing_list in self.mailing_lists])
 		for addr in list_addrs:
 			self['X-BeenThere'] = addr
 		
@@ -205,40 +175,18 @@ class SteppingOutMessage(Message):
 			self['Precedence'] = 'list'
 		
 		# Reply-To should be whatever it was plus whatever lists this is being sent to.
-		reply_to = set([address[1] for address in getaddresses(self.get_all('reply-to', []) + [list_addrs])])
+		reply_to = set([address[1] for address in getaddresses(self.get_all('reply-to', []))]) | list_addrs
 		del self['reply-to']
 		if reply_to:
-			msg['Reply-To'] = COMMASPACE.join(reply_to)
+			self['Reply-To'] = COMMASPACE.join(reply_to)
 		
 		# To and Cc should be able to stay the same... though we can also put things back
 		# right if necessary.
 		# The whole 'letting people send messages to multiple lists' thing is getting to me.
 		# It causes problems. Like how do I set the list headers if it's going to
-		# three different lists? 
+		# three different lists?
 		
 		# Delete DKIM headers since they will not refer to our message.
-		del msg['domainkey-signature']
-		del msg['dkim-signature']
-		del msg['authentication-results']
-	
-	def can_post(self, user):
-		"""
-		For each mailing list this message is being sent to, check if the user
-		has permission to post to it. If so, add the list recipients to recips.
-		If not, add the list to rejected.
-		"""
-		lists = self._meta['addresses']['lists']
-		rejected = self._meta['addresses']['rejected']
-		recips = self._meta['recips']
-		
-		for mlist in lists:
-			if mlist[1].can_post(user):
-				recips['users'] |= mlist[1].recipients
-				recips['emails'] |= set(mlist[1].subscribed_emails.all())
-			else:
-				rejected.add(mlist[0])
-		
-		lists -= rejected
-		self._meta['recips'] = recips
-		self._meta['addresses'].update({'lists': lists, 'rejected': rejected})
-		return not rejected
+		del self['domainkey-signature']
+		del self['dkim-signature']
+		del self['authentication-results']
