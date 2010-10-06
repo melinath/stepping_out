@@ -1,4 +1,4 @@
-from stepping_out.contrib.workshops.models import WorkshopUserMetaInfo
+from stepping_out.contrib.workshops.models import WorkshopUserMetaInfo, Workshop
 from stepping_out.pricing.models import Payment
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Sum
@@ -30,9 +30,9 @@ def export_registration(request):
 		"Price",
 		"Paid"
 	)
-	ct = ContentType.objects.get_for_model(WorkshopUserMetaInfo)
+	ct = ContentType.objects.get_for_model(Workshop)
 	for info in WorkshopUserMetaInfo.objects.all():
-		paid = Payment.objects.filter(payment_for_id=info.id, payment_for_ct=ct).aggregate(Sum('paid'))['paid__sum']
+		paid = Payment.objects.filter(payment_for_id=info.workshop.id, payment_for_ct=ct, user=info.user).aggregate(Sum('paid'))['paid__sum']
 		text += row % (
 			info.user.get_full_name(),
 			info.user.email,
