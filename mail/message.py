@@ -43,16 +43,18 @@ class SteppingOutMessage(Message):
 	generate metadata based on its own contents to prepare it for shipping.
 	Important! It doesn't ACT on the metadata. It only creates it.
 	"""
-	_addresses_parsed = False
-	_sender_parsed = False
-	
-	original_sender = ''
-	recipient_emails = set()
-	
-	commands = set() # This will be a set of curried functions
-	skip_addresses = set() # These addresses will already be receiving the email and shouldn't get a copy.
-	mailing_lists = set() # This will be a set of MailingLists that are targeted to receive an email
-	missing_addresses = set() # This is a set of email addresses at the current domain which can't be matched to lists
+	def __init__(self, *args, **kwargs):
+		Message.__init__(self, *args, **kwargs)
+		self._addresses_parsed = False
+		self._sender_parsed = False
+		
+		self.original_sender = ''
+		self.recipient_emails = set()
+		
+		self.commands = set() # This will be a set of curried functions
+		self.skip_addresses = set() # These addresses will already be receiving the email and shouldn't get a copy.
+		self.mailing_lists = set() # This will be a set of MailingLists that are targeted to receive an email
+		self.missing_addresses = set() # This is a set of email addresses at the current domain which can't be matched to lists
 	
 	@property
 	def log(self):
@@ -153,7 +155,7 @@ class SteppingOutMessage(Message):
 					continue
 				elif '-' in name:
 					# Could be a command?
-					name, command = name.rsplit('-')
+					name, command = name.rsplit('-', 1)
 					
 					if command and command in COMMANDS and name in mailing_lists[domain]:
 						self.commands.add(curry(run_command, mailing_list=mailing_lists[domain][name], command=command))

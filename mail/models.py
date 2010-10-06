@@ -28,8 +28,8 @@ class UserEmail(models.Model):
 		if user and user.email == self.email:
 			user.email = user.emails.all()[0].email
 
-	def save(self):
-		super(UserEmail, self).save()
+	def save(self, *args, **kwargs):
+		super(UserEmail, self).save(*args, **kwargs)
 
 		# replace all references to this instance in mailing lists with its user.
 		subscribed_mailinglists = self.subscribed_mailinglist_set.all()
@@ -174,7 +174,6 @@ class MailingList(models.Model):
 			self.subscribed_emails.add(email)
 		else:
 			self.subscribed_users.add(email.user)
-		# Do I need to call self.save()?
 
 	def unsubscribe(self, email):
 		email = get_email(email)

@@ -35,13 +35,10 @@ def route_email(input):
 	msg = parse_email(input)
 	try:
 		msg.parse_addrs()
-		
 		if msg.missing_addresses:
 			delivery_failure(msg, msg.missing_addresses)
 		
 		if msg.commands:
-			import pdb
-			pdb.set_trace()
 			for command in msg.commands:
 				command(email=msg.original_sender)
 		
