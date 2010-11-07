@@ -146,7 +146,7 @@ class SteppingOutMessage(Message):
 				
 				if domain not in mailing_lists:
 					# Then ignore it - they're getting the message elsehow.
-					self.skip_addresses.append(address)
+					self.skip_addresses.add(address)
 					continue
 				
 				if name in mailing_lists[domain]:
