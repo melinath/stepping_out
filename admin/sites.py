@@ -10,99 +10,20 @@ from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
 from django.template import RequestContext, loader
-from django.utils.datastructures import SortedDict
 from django.utils.http import base36_to_int, int_to_base36
 from django.utils.translation import ugettext_lazy, ugettext as _
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from stepping_out.auth.forms import PendUserCreationForm, TestHumanityForm
 from stepping_out.auth.tokens import registration_token_generator, email_token_generator
-from stepping_out.admin.admin import ModuleAdmin
-from stepping_out.admin.modules import Module, QuerySetModule
+from stepping_out.admin.admin import AdminSection
+from stepping_out.admin.datastructures import OrderedDict
 from stepping_out.mail.models import UserEmail
 from django import forms
 
 
 ERROR_MESSAGE = ugettext_lazy("Please enter a correct username and password. Note that both fields are case-sensitive.")
 LOGIN_FORM_KEY = 'this_is_the_login_form'
-
-
-class OrderedDict(SortedDict):
-	"""
-	A sorted dictionary that defines a sort method for ordering. It accepts args
-	for the sorting function on init.
-	"""
-	def __init__(self, data=None, *args, **kwargs):
-		self.sorting_args = (args, kwargs,)
-	
-	def sort(self):
-		if getattr(self, 'sorted', False):
-			return
-		
-		args, kwargs = self.sorting_args
-		self.keyOrder = [k for k,v in sorted(self.raw_items(), *args, **kwargs)]
-		self.sorted = True
-	
-	def __setitem__(self, key, value):
-		if key not in self:
-			self.keyOrder.append(key)
-			self.sorted = False
-		super(SortedDict, self).__setitem__(key, value)
-	
-	def __iter__(self):
-		self.sort()
-		return super(OrderedDict, self).__iter__()
-	
-	def raw_items(self):
-		"For fetching the dict items for sorting."
-		return super(SortedDict, self).items()
-	
-	def items(self):
-		self.sort()
-		return super(OrderedDict, self).items()
-	
-	def iteritems(self):
-		self.sort()
-		return super(OrderedDict, self).iteritems()
-	
-	def keys(self):
-		self.sort()
-		return super(OrderedDict, self).keys()
-	
-	def iterkeys(self):
-		self.sort()
-		return super(OrderedDict, self).iterkeys()
-	
-	def values(self):
-		self.sort()
-		return super(OrderedDict, self).values()
-	
-	def itervalues(self):
-		self.sort()
-		return super(OrderedDict, self).itervalues()
-	
-	def setdefault(self, key, default):
-		if key not in self:
-			self.keyOrder.append(key)
-			self.sorted = False
-		return super(SortedDict, self).setdefault(key, default)
-	
-	def value_for_index(self, index):
-		self.sort()
-		return super(OrderedDict, self).value_for_index(self, index)
-	
-	def insert(self, index, key, value):
-		self.sorted = False
-		super(OrderedDict, self).insert(index, key, value)
-	
-	def copy(self):
-		obj = super(OrderedDict, self).copy()
-		obj.sorted = self.sorted
-		return obj
-	
-	def clear(self):
-		super(OrderedDict, self).clear()
-		self.sorted = True
 
 
 LoginForm = type('LoginForm', (AuthenticationForm,), {LOGIN_FORM_KEY: forms.BooleanField(widget=forms.HiddenInput, initial=True)})
@@ -116,44 +37,43 @@ class NotRegistered(KeyError):
 	pass
 
 
-class ModuleAdminSite(object):
+class AdminSite(object):
 	url_prefix = 'stepping_out_admin'
-	login_template = 'stepping_out/login.html'
-	logout_template = 'stepping_out/logout.html'
-	home_template = 'stepping_out/modules/home.html'
+	login_template = 'stepping_out/admin/login.html'
+	logout_template = 'stepping_out/admin/logout.html'
+	home_template = 'stepping_out/admin/home.html'
 	account_create_template = 'stepping_out/registration/account_create.html'
 	#account_create_done_template = 'stepping_out/registration/account_create_done.html'
 	
 	def __init__(self):
 		self._registry = OrderedDict(key=lambda t: t[1].order)
 	
-	def register(self, module, admin=ModuleAdmin):
+	def register(self, section):
 		"""
-		Registers a given module with a UserAdminSite instance.
+		Registers a given section with this AdminSite instance.
 		"""
-		if not issubclass(module, Module) and not issubclass(module, QuerySetModule):
+		if not issubclass(section, AdminSection):
 			raise TypeError('%s must be a subclass of %s' %
-				(module, Module.__name__))
+				(section, AdminSection.__name__))
 		
-		if module in self._registry:
-			raise AlreadyRegistered('The module %s is already registered' %
-				module)
+		if section.slug in self._registry:
+			raise AlreadyRegistered('A section is already registered as %s.' %
+				section.slug)
 		
-		self._registry[module] = admin(self, module)
+		self._registry[section.slug] = section(self)
 	
-	def get_module(self, slug):
-		for module in self._registry:
-			if module.slug == slug:
-				return module, self._registry[module]
-		
-		raise NotRegistered("Module with slug '%s' not found in registry")
+	def get_section(self, slug):
+		try:
+			return self._registry[slug]
+		except KeyError:
+			raise NotRegistered("Module with slug '%s' not found in registry" % slug)
 	
 	@property
-	def modules(self):
+	def sections(self):
 		return self._registry
 	
 	def has_permission(self, request):
-		if request.user.is_active and request.user.is_authenticated():
+		if request.user.is_authenticated() and request.user.is_active:
 			return True
 		
 		return False
@@ -199,30 +119,29 @@ class ModuleAdminSite(object):
 			url(r'^emails/add/(?P<uidb36>\w+)-(?P<eidb36>\w+)-(?P<token>.+)/$', self.add_email, name='%s_email_add' % self.url_prefix)
 		)
 		
-		for admin in self._registry.values():
+		for section in self._registry.values():
 			urlpatterns += patterns('',
-				url(r'^%s/' % admin.slug, include(admin.urls)),
+				url(r'^%s/' % section.slug, include(section.urls)),
 			)
 		
 		return urlpatterns
+	urls = property(get_urls)
 	
-	@property
-	def urls(self):
-		return self.get_urls()
+	def get_context(self):
+		return {}
 	
-	def get_context(self, request):
-		navbar = ()
-		for admin in self.modules.values():
+	def get_nav(self, request):
+		navbar = []
+		for admin in self._registry.values():
 			navbar += admin.get_nav(request)
-		return {'navbar': navbar}
+		return navbar
 	
 	def home(self, request):
 		try:
-			return HttpResponseRedirect(self.get_module('home')[1].get_root_url())
+			return HttpResponseRedirect(self.get_section('home').get_root_url())
 		except NotRegistered:
 			return render_to_response(
 				self.home_template,
-				self.get_context(request),
 				context_instance=RequestContext(request)
 			)
 		except:
@@ -380,4 +299,4 @@ class ModuleAdminSite(object):
 		
 		raise Http404
 
-site = ModuleAdminSite()
+site = AdminSite()

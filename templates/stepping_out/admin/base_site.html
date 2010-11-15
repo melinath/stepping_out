@@ -26,13 +26,13 @@
 				{% if not request.user.is_authenticated %}
 				<li><a href='{% url stepping_out_admin_root %}'>Log in</a></li>
 				{% else %}
-				{% include 'stepping_out/navigation.html' %}
+				{% include 'stepping_out/admin/modules/navigation.html' %}
 				{% endif %}
 			</ul>
 			{% endblock %}
 		</div>
 		<div class='container two'>
-			{% block container_two %}{% include 'stepping_out/container_two.html' %}{% endblock %}
+			{% block container_two %}{% include 'stepping_out/admin/modules/container_two.html' %}{% endblock %}
 		</div>
 		<div id='content'>
 			{% if messages %}

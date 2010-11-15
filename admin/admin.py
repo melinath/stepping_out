@@ -1,6 +1,5 @@
 from django.conf.urls.defaults import patterns, url
 from django.core.urlresolvers import reverse
-from stepping_out.admin import moduleform_factory
 from django.forms.models import modelform_factory
 from django.http import HttpResponseRedirect, Http404
 from django.shortcuts import render_to_response, get_object_or_404
@@ -9,42 +8,23 @@ from django.contrib import messages
 from django.contrib.admin.widgets import FilteredSelectMultiple
 from django.contrib.contenttypes.models import ContentType
 from django.forms.widgets import SelectMultiple
+from stepping_out.admin.datastructures import OrderedDict
 
 
-class FieldSet(object):
-	def __init__(self, form, title, opts):
-		self.form = form
-		self.title = title
-		self.fields = opts['fields']
-	
-	def __iter__(self):
-		for field in self.fields:
-			try:
-				yield self.form.formset_instances[field]
-			except KeyError:
-				yield self.form[field]
-
-
-class ModuleAdmin(object):
+class AdminSection(object):
+	"""
+	This is a base class for all admin sections. Should be subclassed to provide
+	section-specific functionality.
+	"""
 	verbose_name = None
 	slug = None
 	help_text = None
 	order = None
-	form_class = None
-	template = 'stepping_out/modules/module.html'
-	fieldsets = None
+	template = 'stepping_out/admin/sections/basic.html'
+	form = None
 	
-	def __init__(self, admin_site, module_class):
+	def __init__(self, admin_site):
 		self.admin_site = admin_site
-		self.module_class = module_class
-		if self.verbose_name is None:
-			self.verbose_name = module_class.verbose_name
-		
-		if self.slug is None:
-			self.slug = module_class.slug
-		
-		if self.form_class is None:
-			self.form_class = moduleform_factory(module_class)
 	
 	@property
 	def urls(self):
@@ -52,7 +32,7 @@ class ModuleAdmin(object):
 			return self.admin_view(view, cacheable)
 		
 		urlpatterns = patterns('',
-			url(r'^$', wrap(self.base_view),
+			url(r'^$', wrap(self.basic_view),
 				name='%s_%s' % (self.admin_site.url_prefix, self.slug)),
 		)
 		return urlpatterns
@@ -63,24 +43,22 @@ class ModuleAdmin(object):
 	def get_nav(self, request):
 		if self.has_permission(request):
 			url = self.get_root_url()
-			return ((self.verbose_name, url, url == request.path),)
-		return ()
+			return [{
+				'title': self.verbose_name,
+				'url': self.get_root_url(),
+				'selected': self.is_selected(request),
+			}]
+		return []
 	
-	def get_fieldsets(self, form):
-		if self.fieldsets is not None:
-			fieldsets = []
-			for title, opts in self.fieldsets:
-				fieldsets.append(FieldSet(form, title, opts))
-			return fieldsets
-		
-		return [FieldSet(form, None, {'fields': form.all_fields.keys()})]
+	def is_selected(self, request):
+		if request.path == self.get_root_url():
+			return True
+		return False
 	
-	def get_context(self, request):
-		context = self.admin_site.get_context(request)
-		context.update({
+	def get_context(self):
+		return {
 			'admin': self
-		})
-		return context
+		}
 	
 	def has_permission(self, request):
 		return request.user.is_active and request.user.is_authenticated()
@@ -92,83 +70,61 @@ class ModuleAdmin(object):
 			return view(request, *args, **kwargs)
 		return self.admin_site.admin_view(inner)
 	
-	def redirect(self):
-		"""
-		For some reason, if this is not included as a method, django can't find
-		HttpResponseRedirect...
-		"""
-		return HttpResponseRedirect('')
-	
-	def add_messages(self, request, msgs):
-		for level, msg in msgs:
-			messages.add_message(request, level, msg, fail_silently=False)
-	
-	def base_view(self, request):
-		module = self.module_class(request.user)
-		form_class = self.form_class
-		
-		if request.method == 'POST':
-			form = form_class(module, request.POST, request.FILES)
-			
-			if form.is_valid():
-				form.save()
-				self.add_messages(request, form.messages)
-				return self.redirect()
-		else:
-			form = form_class(module)
-		
-		fieldsets = self.get_fieldsets(form)
-		context = self.get_context(request)
-		context.update({
-			'form': form,
-			'fieldsets': fieldsets
-		})
+	def basic_view(self, request, extra_context=None):
+		context = self.get_context()
+		context.update(extra_context or {})
+		context.update({'navbar': self.admin_site.get_nav(request)})
 		template = self.template
-		context_instance = RequestContext(request)
 		
 		return render_to_response(
 			template,
 			context,
-			context_instance=context_instance
+			context_instance=RequestContext(request)
 		)
 
 
-class QuerySetModuleAdmin(ModuleAdmin):
-	base_template = 'stepping_out/modules/config/base.html'
-	create_template = 'stepping_out/modules/config/create.html'
-	edit_template = 'stepping_out/modules/config/edit.html'
+class FormAdminSection(AdminSection):
+	form = None
+	
+	def basic_view(self, request, extra_context=None):
+		if self.form is not None:
+			if request.method == 'POST':
+				form = self.form(request.POST, request.FILES)
+				
+				if form.is_valid():
+					form.save()
+					return HttpResponseRedirect('')
+			else:
+				form = self.form()
+			
+			extra_context = extra_context or {}
+			extra_context.update({
+				'form': form
+			})
+		return super(FormAdminSection, self).basic_view(request, extra_context)
+
+
+class QuerySetAdminSection(AdminSection):
+	base_template = 'stepping_out/admin/sections/queryset/base.html'
+	create_template = 'stepping_out/admin/sections/queryset/create.html'
+	edit_template = 'stepping_out/admin/sections/queryset/edit.html'
 	create_form = None
 	edit_form = None
+	model = None
 	
-	def __init__(self, admin_site, module_class):
-		self.admin_site = admin_site
-		self.module_class = module_class
-		
-		if self.verbose_name is None:
-			self.verbose_name = module_class.verbose_name
-		
-		if self.slug is None:
-			self.slug = module_class.slug
-		
+	def __init__(self, admin_site):
 		if self.create_form is None:
-			self.create_form = self.default_form
+			self.create_form = self.get_default_form()
 		
 		if self.edit_form is None:
-			self.edit_form = self.default_form
+			self.edit_form = self.get_default_form()
 	
-	@property
-	def default_form(self):
-		if not hasattr(self, '_default_form'):
-			form = modelform_factory(self.module_class.model)
-			for name, field in form.base_fields.items():
-				if isinstance(field.widget, SelectMultiple):
-					field.widget = FilteredSelectMultiple(name.replace('_', ' '), False)
-			self._default_form = form
-		return self._default_form
+	def get_default_form(self):
+		return modelform_factory(self.model)
 	
 	def has_permission(self, request):
-		ct = ContentType.objects.get_for_model(self.module_class.model)
-		return request.user.is_authenticated() and (request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)) or request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model)))
+		opts = self.model._meta
+		return request.user.is_authenticated() and (request.user.has_perm('%s.%s' % (opts.app_label, opts.get_add_permission())) or request.user.has_perm('%s.%s' % (opts.app_label, opts.get_change_permission())))
 	
 	@property
 	def urls(self):
@@ -180,77 +136,107 @@ class QuerySetModuleAdmin(ModuleAdmin):
 				return view(request, *args, **kwargs)
 			inner = self.admin_view(inner)
 			return inner
-		
+		opts = self.model._meta
 		urlpatterns = patterns('',
-			url(r'^$', wrap(self.base_view), name="%s_%s_root" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^create/$', wrap(self.create_view, 'add'), name="%s_%s_create" % (self.admin_site.url_prefix, self.slug)),
-			url(r'^(?P<object_id>\d+)/edit/$', wrap(self.edit_view, 'change'), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
+			url(r'^$', wrap(self.basic_view), name="%s_%s_root" % (self.admin_site.url_prefix, self.slug)),
+			url(r'^create/$', wrap(self.create_view, '%s.%s' % (opts.app_label, opts.get_add_permission())), name="%s_%s_create" % (self.admin_site.url_prefix, self.slug)),
+			url(r'^(?P<object_id>\d+)/edit/$', wrap(self.edit_view, '%s.%s' % (opts.app_label, opts.get_change_permission())), name="%s_%s_edit" % (self.admin_site.url_prefix, self.slug))
 		)
 		return urlpatterns
 	
 	def get_root_url(self):
 		return reverse('%s_%s_root' % (self.admin_site.url_prefix, self.slug))
 	
+	def get_queryset(self):
+		return self.model.all()
+	
 	def get_nav(self, request):
 		if self.has_permission(request):
 			main_is_active = False
-			subnav = ()
+			children = []
 			info = self.admin_site.url_prefix, self.slug
-			ct = ContentType.objects.get_for_model(self.module_class.model)
-			if request.user.has_perm('%s.add_%s' % (ct.app_label, ct.model)):
+			
+			opts = self.model._meta
+			
+			if request.user.has_perm('%s.%s' % (opts.app_label, opts.get_add_permission())):
 				url = reverse('%s_%s_create' % info)
 				is_active = (url == request.path)
 				if is_active:
 					main_is_active = True
-				subnav += (('Create', url, is_active, ()),)
+				children.append({
+					'url': url,
+					'title': 'Create',
+					'selected': is_active,
+				})
 			
-			if request.user.has_perm('%s.change_%s' % (ct.app_label, ct.model)):
-				edit_subnav = ()
+			if request.user.has_perm('%s.%s' % (opts.app_label, opts.get_change_permission())):
+				edit_children = []
 				edit_is_active = False
-				for instance in self.module_class.get_queryset():
+				for instance in self.get_queryset():
 					url = reverse('%s_%s_edit' % info, kwargs={'object_id': instance.id})
 					is_active = (url == request.path)
 					if is_active:
 						edit_is_active = True
-					edit_subnav += (
-						(unicode(instance), url, is_active, ()),
-					)
+					edit_children.append({
+						'title': unicode(instance),
+						'url': url,
+						'selected': is_active,
+					})
 				
 				if edit_is_active:
 					main_is_active = True
-				subnav += (('Edit', None, edit_is_active, edit_subnav),)
-			return ((self.verbose_name, None, main_is_active, subnav),)
-		return ()
+				children.append({
+					'title': 'Edit',
+					'url': None,
+					'selected': edit_is_active,
+					'children': edit_children,
+				})
+			return [{
+				'title': self.verbose_name,
+				'url': None,
+				'selected': main_is_active,
+				'children': children,
+			}]
+		return []
 	
-	def base_view(self, request):
-		return render_to_response(self.base_template, self.get_context(request),
-			context_instance=RequestContext(request))
+	def basic_view(self, request, extra_context=None):
+		context = extra_context or {}
+		context.update({'list': self.model.objects.all()})
+		return self.create_view(template=self.base_template)
 	
-	def create_view(self, request):
+	def create_view(self, request, extra_context=None, template=None):
 		if request.method == 'POST':
-			form = self.create_form(request.POST)
+			form = self.create_form(request, request.POST, request.FILES)
 			if form.is_valid():
 				obj = form.save()
+				messages.add_message(request, messages.SUCCESS, 'Object added successfully. You may continue editing it below.')
 				return HttpResponseRedirect(reverse('%s_%s_edit' % (self.admin_site.url_prefix, self.slug), kwargs={'object_id': obj.id}))
 		else:
-			form = self.create_form()
-		context = self.get_context(request)
+			form = self.create_form(request)
+		
+		if template is None:
+			template = self.create_template
+		
+		context = self.get_context()
+		context.update(extra_context or {})
 		context.update({'form': form})
-		return render_to_response(self.create_template, context, context_instance=RequestContext(request))
+		return render_to_response(template, context,
+			context_instance=RequestContext(request))
 	
-	def edit_view(self, request, object_id):
-		instance = get_object_or_404(self.module_class.model, id=object_id)
+	def edit_view(self, request, object_id, extra_context=None):
+		instance = get_object_or_404(self.model, id=object_id)
 		
 		if request.method == 'POST':
-			form = self.edit_form(request.POST, instance=instance)
+			form = self.edit_form(request, request.POST, request.FILES, instance=instance)
 			if form.is_valid():
 				obj = form.save()
 				messages.add_message(request, messages.SUCCESS, 'Changes made successfully.')
 				return HttpResponseRedirect('')
 		else:
-			form = self.edit_form(instance=instance)
+			form = self.edit_form(request, instance=instance)
 		
-		context = self.get_context(request)
+		context = self.get_context()
+		context.update(extra_context or {})
 		context.update({'form': form})
-		
-		return render_to_response(self.edit_template, context, context_instance=RequestContext(request))
+		return render_to_response(self.edit_template, context,
+			context_instance=RequestContext(request))

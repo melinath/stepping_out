@@ -1,0 +1,66 @@
+{% extends 'stepping_out/admin/base_site.html' %}
+{% block content %}
+{% if admin.title %}<h2>{{ admin.title }}</h2>{% endif %}
+{% if admin.help_text %}{{ admin.help_text|safe }}{% endif %}
+{% if form or formset %}
+<form method='post' action='' enctype='multipart/form-data'>
+{% csrf_token %}
+	{% if form %}
+	{% if form.non_field_errors %}
+	<ul class='errors'>{% for error in form.non_field_errors %}
+		<li class='error'>{{ error }}</li>{% endfor %}
+	</ul>
+	{% endif %}
+	{% block form %}
+	<dl>
+		{% for field in form %}
+		{% include "stepping_out/admin/modules/form_field.html" %}
+		{% endfor %}
+	</dl>
+	{% endblock %}
+	{% endif %}
+	{% if formset %}
+	{{ formset.management_form }}
+	{% block formset %}
+	{% with formset.forms.0.visible_fields|length as columns %}
+	<table>
+		<thead>
+			{% with formset.forms|first as form %}
+				{% for field in form.visible_fields %}
+					<th{% if field.required %} class='required'{% endif %}>{{ field.label|capfirst }}</th>
+				{% endfor %}
+			{% endwith %}
+		</thead>
+		<tfoot>
+			<tr>
+				<td colspan='{{ columns }}'>
+					<p class='help'>{{ formset.help_text }}</p>
+				</td>
+			</tr>
+		</tfoot>
+		<tbody>
+			{% for form in formset.forms %}
+				{% if form.non_field_errors %}
+				<tr><td colspan='{{ columns }}' class='errors'>{{ form.non_field_errors }}</td></tr>
+				{% endif %}
+				<tr>
+					{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+					{% for field in form.visible_fields %}
+					<td>{{ field }}
+					{% if field.errors %}
+					<ul class='errors'>
+						{% for error in field.errors %}<li class='error'>{{ error }}</li>{% endfor %}
+					</ul>
+					{% endif %}
+					</td>{% endfor %}
+				</tr>
+			{% endfor %}
+		</tbody>
+	</table>
+	{% endwith %}
+	{% endblock %}
+	{% endif %}
+	<button type='submit'>Save</button>
+</form>
+{% endif %}
+{% endblock %}

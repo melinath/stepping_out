@@ -26,7 +26,11 @@ class UserEmail(models.Model):
 		user = self.user
 		super(UserEmail, self).delete()
 		if user and user.email == self.email:
-			user.email = user.emails.all()[0].email
+			try:
+				user.email = user.emails.all()[0].email
+			except KeyError:
+				user.email = ''
+			user.save()
 
 	def save(self, *args, **kwargs):
 		super(UserEmail, self).save(*args, **kwargs)
@@ -58,6 +62,10 @@ def sync_user_emails(instance, created, **kwargs):
 models.signals.post_save.connect(sync_user_emails, sender=User)
 
 def get_email(email):
+	"Return an existing UserEmail instance or None."
+	if isinstance(email, User):
+		return email.emails.get(email=email.email)
+	
 	if isinstance(email, (str, unicode)):
 		email = parseaddr(email)[1]
 		validate_email(email)
@@ -184,7 +192,6 @@ class MailingList(models.Model):
 		self.subscribed_emails.remove(email)
 		if email.user is not None:
 			self.subscribed_users.remove(email.user)
-		# Do I need to call self.save()?
 
 	def is_subscribed(self, email):
 		# Subscribed means explicitly subscribed - not subscribed as part of a

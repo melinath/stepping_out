@@ -26,8 +26,8 @@ class Building(models.Model):
 
 class Venue(models.Model):
 	name = models.CharField(max_length=150)
-	location = models.TextField(help_text='Where in the building?', blank=True)
-	building = models.ForeignKey(Building)
+	location = models.TextField(help_text='Second floor, on the hill, etc.', blank=True)
+	building = models.ForeignKey(Building, blank=True, null=True)
 
 
 class Event(models.Model):
@@ -43,6 +43,7 @@ class Event(models.Model):
 	venue = models.ForeignKey(Venue, blank=True, null=True)
 	parent_event = models.ForeignKey('self', blank=True, null=True)
 	uid = models.CharField(max_length=255, unique=True)
+	#TODO: Handle repetition rules.
 	
 	def save(self, *args, **kwargs):
 		if not self.uid:

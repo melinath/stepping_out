@@ -1,0 +1,65 @@
+{% extends 'stepping_out/admin/sections/basic.html' %}
+
+{% block form %}
+<dl>
+	{% for field in form %}{% if "name" in field.name %}
+	{% include "stepping_out/admin/modules/form_field.html" %}{% endif %}{% endfor %}
+</dl>
+{% with form.delete_emails.errors|add:form.email.errors as errors %}
+{% if errors %}
+<ul class='errors'>{% for error in errors %}<li class="error">{{ error }}</li>{% endfor %}</ul>
+{% endif %}
+{% endwith %}
+<table>
+	<thead>
+		<th>Current emails</th>
+		<th>Primary email</th>
+		<th>Delete</th>
+	</thead>
+	<tbody>
+		{% for row in form.get_email_table_rows %}
+		<tr>
+			<td>{{ row.0 }}</td>
+			<td>{{ row.1|safe }}</td>
+			<td>{{ row.2|safe }}</td>
+		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endblock %}
+
+
+{% block formset %}
+{% with formset.forms.0.visible_fields|length as columns %}
+<table>
+	<thead>
+		<th class='required'>New Emails</th>
+	</thead>
+	<tfoot>
+		<tr>
+			<td colspan='{{ columns }}'>
+				<p class='help'>{{ formset.help_text }}</p>
+			</td>
+		</tr>
+	</tfoot>
+	<tbody>
+		{% for form in formset.forms %}
+			{% if form.non_field_errors %}
+			<tr><td colspan='{{ columns }}' class='errors'>{{ form.non_field_errors }}</td></tr>
+			{% endif %}
+			<tr>
+				{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+				{% for field in form.visible_fields %}
+				<td>{{ field }}
+				{% if field.errors %}
+				<ul class='errors'>
+					{% for error in field.errors %}<li class='error'>{{ error }}</li>{% endfor %}
+				</ul>
+				{% endif %}
+				</td>{% endfor %}
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{% for item in navbar %}
+	<li{% if item.selected %} class='active'{% endif %}>
+		{% if item.url %}<a href='{{ item.url }}'{% else %}<span{% endif %} id='navigation_{{ forloop.counter0 }}'>
+		{{ item.title }}
+		{% if item.url %}</a>{% else %}</span>{% endif %}
+		{% if item.children %}
+		<ul class='collapse' rel='navigation_{{ forloop.counter0 }}'>
+			{% for subitem in subnav %}
+			<li{% if subitem.selected %} class='active'{% endif %}>
+				{% if subitem.url %}<a href='{{ subitem.url }}'{% else %}<span{% endif %} id='navigation_{{ forloop.parentloop.counter0 }}_{{ forloop.counter0 }}'>
+				{{ subitem.title }}
+				{% if subitem.url %}</a>{% else %}</span>{% endif %}
+				{% if subsubnav %}
+				<ul>
+					{% for subsubitem in subsubnav %}
+					<li{% if subsubitem.selected %} class='active'{% endif %}>
+						{% if subsubitem.url %}<a href='{{ subsubitem.url }}'{% else %}<span{% endif %} id='navigation_{{ forloop.parentloop.parentloop.counter0 }}_{{ forloop.parentloop.counter0 }}_{{ forloop.counter0 }}'>
+						{{ subsubitem.title }}
+						{% if subsubitem.url %}</a>{% else %}</span>{% endif %}
+					</li>
+					{% endfor %}
+				</ul>
+				{% endif %}
+			</li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</li>
+{% endfor %}

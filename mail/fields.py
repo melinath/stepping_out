@@ -4,7 +4,6 @@ from django.forms.widgets import CheckboxSelectMultiple, CheckboxInput
 from django.utils.encoding import force_unicode
 from django.utils.html import conditional_escape
 from django.utils.safestring import mark_safe
-from stepping_out.admin.fields import ChoiceOfManyField
 from itertools import chain
 
 
@@ -53,8 +52,4 @@ class MailingListMultipleChoiceField(ModelMultipleChoiceField):
 		
 		return HelpTextModelChoiceIterator(self)
 	choices = property(_get_choices, ChoiceField._set_choices)
-
-
-class MailingListChoiceOfManyField(ChoiceOfManyField):
-	def formfield(self, form_class=MailingListMultipleChoiceField, widget=HelpTextCheckboxSelectMultiple, **kwargs):
-		return super(MailingListChoiceOfManyField, self).formfield(form_class, widget, **kwargs)
+	widget = HelpTextCheckboxSelectMultiple
