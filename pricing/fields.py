@@ -9,20 +9,19 @@ class SlugListField(models.TextField):
 	description = _("Comma-separated slug field")
 	
 	def __init__(self, *args, **kwargs):
-		if 'choices' in kwargs and hasattr(kwargs['choices'], '__call__'):
+		if 'choices' in kwargs and callable(kwargs['choices']):
 			self._choice_func = kwargs.pop('choices')
 			kwargs['choices'] = self._choice_func()
 		super(SlugListField, self).__init__(*args, **kwargs)
 	
-	def get_choices(self):
-		return super(SlugListField, self).get_choices(include_blank=False)
+	def get_choices(self, include_blank=False, blank_choice=models.fields.BLANK_CHOICE_DASH):
+		return super(SlugListField, self).get_choices(include_blank, blank_choice)
 	
-	def _get_choices(self, **kwargs):
+	def _get_choices(self):
 		# TODO: is there a more elegant way to force late evaluation?
 		if hasattr(self, '_choice_func'):
 			return self._choice_func()
-		kwargs['include_blank'] = False
-		return super(SlugListField, self).get_choices(**kwargs)
+		return super(SlugListField, self)._get_choices()
 	choices = property(_get_choices)
 	
 	def to_python(self, value):
@@ -55,3 +54,7 @@ class SlugListField(models.TextField):
 		if invalid_values:
 			# should really make a custom message.
 			raise ValidationError(self.error_messages['invalid_choice'] % invalid_values)
+
+
+from south.modelsinspector import add_introspection_rules
+add_introspection_rules([], ["^stepping_out\.pricing\.fields\.SlugListField"])

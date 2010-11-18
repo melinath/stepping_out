@@ -42,7 +42,6 @@ class AdminSection(object):
 	
 	def get_nav(self, request):
 		if self.has_permission(request):
-			url = self.get_root_url()
 			return [{
 				'title': self.verbose_name,
 				'url': self.get_root_url(),
@@ -61,7 +60,7 @@ class AdminSection(object):
 		}
 	
 	def has_permission(self, request):
-		return request.user.is_active and request.user.is_authenticated()
+		return request.user.is_authenticated() and request.user.is_active
 	
 	def admin_view(self, view, cacheable=False, test=None):
 		def inner(request, *args, **kwargs):
@@ -70,11 +69,11 @@ class AdminSection(object):
 			return view(request, *args, **kwargs)
 		return self.admin_site.admin_view(inner)
 	
-	def basic_view(self, request, extra_context=None):
+	def basic_view(self, request, template=None, extra_context=None):
 		context = self.get_context()
 		context.update(extra_context or {})
 		context.update({'navbar': self.admin_site.get_nav(request)})
-		template = self.template
+		template = template or self.template
 		
 		return render_to_response(
 			template,

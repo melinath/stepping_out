@@ -1,5 +1,5 @@
 		{% include 'stepping_out/admin/modules/form_field_label.html' %}
-		<dd>
+		<dd{% if field.field.required %} class="required"{% endif %}>
 			{{ field }}
 			{% include 'stepping_out/admin/modules/form_field_help.html' %}
 			{% include 'stepping_out/admin/modules/form_field_errors.html' %}

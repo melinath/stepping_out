@@ -32,6 +32,11 @@ input[type='url'], textarea{
 	padding:4px;
 	border-left:#ddd solid 9px;
 }
+	.required input[type='text'], .required input[type='password'],
+	.required input[type='email'], .required input[type='url'],
+	.required textarea{
+		border-left-color:#444;
+	}
 input[type=email]{
 	width:95%;
 	padding-right:5%;
