@@ -21,10 +21,12 @@ class TermManager(models.Manager):
 
 
 class Term(models.Model):
+	"""Describes a term of office."""
 	start = models.DateField()
 	end = models.DateField()
-	name = models.CharField(max_length=30, blank = True)
+	name = models.CharField(max_length=30, blank=True)
 	objects = TermManager()
+	positions = models.ManyToManyField('OfficerPosition', related_name="terms", through='OfficerUserTermMetaInfo')
 
 	def __unicode__(self):
 		if(self.name):
@@ -36,10 +38,20 @@ class Term(models.Model):
 		app_label = 'stepping_out'
 
 
-class OfficerUserMetaInfo(models.Model):
+class OfficerUserTermMetaInfo(models.Model):
 	officer_position = models.ForeignKey('OfficerPosition')
 	user = models.ForeignKey(User)
-	terms = models.ManyToManyField(Term)
+	term = models.ForeignKey(Term)
+	
+	start = models.DateField()
+	end = models.DateField()
+	
+	def save(self, *args, **kwargs):
+		if self.start is None:
+			self.start = self.term.start
+		if self.end is None:
+			self.end = self.term.end
+		super(OfficerUserTermMetaInfo, self).save(*args, **kwargs)
 
 	class Meta:
 		verbose_name = 'Officer/User Meta Info'
@@ -50,7 +62,7 @@ class OfficerUserMetaInfo(models.Model):
 		return '%s :: %s' % (self.user.get_full_name(), self.officer_position)
 
 
-class OfficerManager(models.Manager):
+class OfficerPositionManager(models.Manager):
 	def get_user_positions(self, user, termlist):
 		return self.filter(users=user, users__officerusermetainfo__terms__in=termlist)
 
@@ -66,10 +78,21 @@ class OfficerPosition(models.Model):
 	Conveniently, these positions can also be used to automatically generate a
 	list of current officers, through the extended manager.
 	"""
+	#TODO: Update the admin.
+	CATEGORY_CHOICES = (
+		('o', 'Officer'),
+		('i', 'Instructor'),
+	)
+	objects = OfficerPositionManager()
+	
 	name = models.CharField(max_length=50)
+	slug = models.SlugField(max_length=50)
+	description = models.TextField(help_text="A description of the officer's roles and responsibilities.")
+	
 	permissions = models.ManyToManyField(Permission, blank=True, null=True)
 	order = models.IntegerField()
-	users = models.ManyToManyField(User, through='OfficerUserMetaInfo')
+	category = models.CharField(max_length=1, choices=CATEGORY_CHOICES)
+	users = models.ManyToManyField(User, related_name="officer_positions", through=OfficerUserTermMetaInfo)
 
 	def __unicode__(self):
 		return self.name
