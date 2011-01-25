@@ -47,6 +47,8 @@ class Term(models.Model):
 
 
 class OfficerManager(models.Manager):
+	use_for_related_fields = True
+	
 	def for_date(self, date):
 		return self.exclude(end__lt=date).exclude(start__gt=date)
 	
@@ -57,7 +59,7 @@ class OfficerManager(models.Manager):
 class Officer(models.Model):
 	objects = OfficerManager()
 	
-	position = models.ForeignKey('OfficerPosition')
+	position = models.ForeignKey('OfficerPosition', related_name='officers')
 	user = models.ForeignKey(User, related_name='officers')
 	term = models.ForeignKey(Term, related_name='officers')
 	
