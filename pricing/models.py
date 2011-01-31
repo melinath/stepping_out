@@ -4,7 +4,7 @@ from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
 from paypal.standard.ipn.models import PayPalIPN
 from stepping_out.pricing import people
-from stepping_out.pricing.fields import SlugListField
+from stepping_out.pricing.fields import SlugMultipleChoiceField
 import datetime
 
 class PricePackage(models.Model):
@@ -20,7 +20,7 @@ class PricePackage(models.Model):
 	event_object_id = models.PositiveIntegerField()
 	event = generic.GenericForeignKey('event_content_type', 'event_object_id')
 	available_until = models.DateField(blank=True, null=True)
-	person_types = SlugListField(choices=people.registry.get_choices)
+	person_types = SlugMultipleChoiceField(choices=people.registry.iterchoices())
 	
 	def __unicode__(self):
 		return '%s :: %s' % (self.name, self.event)

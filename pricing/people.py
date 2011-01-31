@@ -1,19 +1,25 @@
 from django.db.models.options import get_verbose_name as convert_camelcase
 from django.template.defaultfilters import capfirst
-from django.dispatch import Signal
 
 
-person_added = Signal(providing_args=["person_type"])
+class PersonMetaclass(type):
+	def __new__(cls, name, bases, attrs):
+		if 'slug' not in attrs:
+			attrs['slug'] = name.lower()
+		if 'verbose_name' not in attrs:
+			attrs['verbose_name'] = capfirst(convert_camelcase(name))
+		return super(PersonMetaclass, cls).__new__(cls, name, bases, attrs)
 
 
 class Person(object):
+	__metaclass__ = PersonMetaclass
 	order = 0
 	
 	def validate(self, user):
 		return True
 	
 	def __unicode__(self):
-		return capfirst(getattr(self, 'verbose_name', convert_camelcase(self.__class__.__name__)))
+		return self.verbose_name
 
 
 class AlreadyRegistered(Exception):
@@ -31,24 +37,27 @@ class PersonRegistry(object):
 	def __getitem__(self, key):
 		return self._registry.__getitem__(key)
 	
-	def register(self, cls):
-		if issubclass(cls, Person):
-			slug = unicode(getattr(cls, 'slug', cls.__name__.lower()))
-			if slug in self._registry and not isinstance(self._registry[slug], cls):
-				raise AlreadyRegistered("Another class is already registered as %s" % slug)
-			self._registry[slug] = cls()
-			person_added.send(sender=self, person_type=cls)
-			
+	def register(self, cls, slug=None):
+		if slug is None:
+			slug = cls.slug
+		if slug in self._registry and not isinstance(self._registry[slug], cls):
+			raise AlreadyRegistered("A class besides '%s' is already registered as '%s'" % (cls.__name__, slug))
+		self._registry[slug] = cls()
 	
-	def unregister(self, cls):
-		slug = unicode(getattr(cls, 'slug', cls.__name__.lower()))
-		if slug in self._registry:
-			if not isinstance(self._registry[slug], cls):
-				raise NotRegistered("%s is registered as %s, not %s" % (self._registry[slug], slug, cls))
-			del(self._registry[slug])
+	def unregister(self, cls, slug=None):
+		if slug is None:
+			slug = cls.slug
+		if slug not in self._registry:
+			raise NotRegistered("'%s' is not a registered person type" % cls.__name__)
+		
+		if not isinstance(self._registry[slug], cls):
+			raise NotRegistered("'%s' is not registered as '%s'" % (cls.__name__, slug))
+		
+		del(self._registry[slug])
 	
-	def get_choices(self):
-		return tuple(self._registry.items())
+	def iterchoices(self):
+		for slug, instance in self._registry.iteritems():
+			yield slug, unicode(instance)
 
 
 class Anyone(Person):

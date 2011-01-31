@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.localflavor.us.forms import USZipCodeField as USZipCodeFormField
 from django.contrib.localflavor.us.models import USStateField
 from django.contrib.sites.models import Site
+from django.core.validators import RegexValidator
 from django.http import HttpResponseRedirect
 from django.utils.hashcompat import sha_constructor
 import datetime
@@ -72,7 +73,8 @@ class Event(models.Model):
 	venue = models.ForeignKey(Venue, blank=True, null=True)
 	parent_event = models.ForeignKey('self', blank=True, null=True)
 	uid = models.CharField(max_length=255, unique=True, blank=True,
-		help_text="This will be auto-generated if left blank.")
+		help_text="This will be auto-generated if left blank.",
+		validators=[RegexValidator(r"^[\w-]+//[^/]+$")])
 	#TODO: Handle repetition rules.
 	
 	owner = models.ForeignKey(User, related_name="events")
