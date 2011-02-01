@@ -42,7 +42,7 @@ class EventInline(admin.StackedInline):
 class EventAdmin(admin.ModelAdmin):
 	fieldsets = (
 		(None, {
-			'fields': ('title', 'description', 'venue')
+			'fields': ('title', 'description', 'venue', 'owner')
 		}),
 		('Times', {
 			'fields': ('start_date', 'start_time', 'end_date', 'end_time')

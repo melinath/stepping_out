@@ -10,6 +10,9 @@ class Calendar(models.Model):
 	calendar_id = models.CharField("Calendar ID", max_length=100, unique=True, help_text="Should conform to Formal Public Identifier format.")
 	sync_with_url = models.URLField(help_text='Valid URL of an ics (ICal) file', blank=True)
 	events = models.ManyToManyField(Event, blank=True, null=True)
+	
+	def __unicode__(self):
+		return self.name
 
 
 class Ride(models.Model):
