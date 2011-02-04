@@ -1,6 +1,6 @@
 {% spaceless %}
 
-{% load staticmedia adminmedia %}
+{% load adminmedia %}
 
 {% endspaceless %}<!DOCTYPE html>
 
@@ -8,10 +8,10 @@
 
 <head>
 	<title>{% block title %}Stepping Out User Admin{% endblock %}</title>
-	<link rel='stylesheet' type='text/css' href='{% mediaurl "stepping_out/modules/base.css" %}' />
+	<link rel='stylesheet' type='text/css' href='{{ STATIC_URL }}stepping_out/modules/base.css' />
 	{% block javascript %}
-	<script type='text/javascript' src='{% mediaurl "stepping_out/jquery.min.js" %}'></script>
-	<script type='text/javascript' src='{% mediaurl "stepping_out/modules/base.js" %}'></script>
+	<script type='text/javascript' src='{{ STATIC_URL }}stepping_out/jquery.min.js'></script>
+	<script type='text/javascript' src='{{ STATIC_URL }}stepping_out/modules/base.js'></script>
 	{% endblock %}
 </head>
 
