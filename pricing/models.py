@@ -1,11 +1,14 @@
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
 from django.contrib.contenttypes.models import ContentType
-from paypal.standard.ipn.models import PayPalIPN
 from stepping_out.pricing import people
 from stepping_out.pricing.fields import SlugMultipleChoiceField
 import datetime
+
+if 'paypal' in settings.INSTALLED_APPS:
+	from paypal.standard.ipn.models import PayPalIPN
 
 class PricePackage(models.Model):
 	"""
@@ -99,7 +102,12 @@ class Payment(models.Model):
 	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
 	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
 	payment_made = models.DateTimeField(default=datetime.datetime.now)
-	ipn = models.OneToOneField(PayPalIPN, blank=True, null=True)
+	
+	#TODO: Find a better way to segment this out - perhaps by making a model
+	# that relates an ipn to a payment? Or just add a "payment" field to the IPN
+	# model via contribute_to_class?
+	if 'paypal' in settings.INSTALLED_APPS:
+		ipn = models.OneToOneField(PayPalIPN, blank=True, null=True)
 	
 	class Meta:
 		app_label = 'stepping_out'
