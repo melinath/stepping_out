@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.contenttypes import generic
 from stepping_out.pricing.models import PricePackage, PriceOption, Price, Payment
+from stepping_out.pricing.people import registry
 
 
 class PricePackageInline(generic.GenericStackedInline):
@@ -18,6 +19,10 @@ class PricePackageAdmin(admin.ModelAdmin):
 	inlines=[
 		PriceOptionInline
 	]
+	def __init__(self, *args, **kwargs):
+		# HACK - iterchoices isn't being cached correctly.
+		PricePackage._meta.get_field('person_types')._choices = registry.iterchoices()
+		super(PricePackageAdmin, self).__init__(*args, **kwargs)
 
 
 class PriceInline(admin.TabularInline):
