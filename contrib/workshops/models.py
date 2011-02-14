@@ -142,13 +142,13 @@ class WorkshopEvent(models.Model):
 
 
 class HousingOffer(models.Model):
-	registration = models.ForeignKey(Registration)
+	registration = models.OneToOneField(Registration)
 	address = models.TextField()
 	smoking = models.BooleanField(verbose_name='Smoking or recent smoking')
 	cats = models.BooleanField()
 	dogs = models.BooleanField()
-	num_ideal = models.PositiveIntegerField(verbose_name='Ideal number of guests')
-	num_max = models.PositiveIntegerField(verbose_name='Maximum number of guests')
+	num_ideal = models.PositiveIntegerField(verbose_name='Ideal number of guests', default=2)
+	num_max = models.PositiveIntegerField(verbose_name='Maximum number of guests', default=3)
 	comments = models.TextField(verbose_name='Additional comments', blank=True)
 	
 	class Meta:

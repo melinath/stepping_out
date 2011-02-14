@@ -26,23 +26,22 @@ class HousingPhoneNumberForm(forms.ModelForm):
 		
 		if registration.user:
 			pn_field = User._meta.get_field('phone_number').formfield()
-			phone_number = user.phone_number
+			phone_number = registration.user.phone_number
 		else:
 			pn_field = Registration._meta.get_field('phone_number').formfield()
 			phone_number = registration.phone_number
-		self.fields['phone_number'] = pn_field
-		initial = {
-			'phone_number': phone_number
-		}
-		initial.update(kwargs.get('initial', {}))
-		kwargs['initial'] = initial
 		
 		try:
-			instance = self._meta.model._default_manager.get(registration=registration, coordinator=self.coordinator)
+			instance = self._meta.model._default_manager.get(registration=registration)
 		except ObjectDoesNotExist:
-			instance = self._meta.model(registration=registration, coordinator=self.coordinator)
+			instance = self._meta.model(registration=registration)
 		kwargs['instance'] = instance
-		super(HousingPhoneNumber, self).__init__(*args, **kwargs)
+		
+		super(HousingPhoneNumberForm, self).__init__(*args, **kwargs)
+		self.fields['phone_number'] = pn_field
+		self.initial.update({
+			'phone_number': phone_number
+		})
 	
 	def save(self, commit=True):
 		if 'phone_number' in self.changed_data:
@@ -151,16 +150,19 @@ class WorkshopRegistrationForm(forms.ModelForm):
 			try:
 				instance = Registration.objects.get(**registration_kwargs)
 				try:
-					instance.housing_offer
+					instance.housingoffer
 				except:
 					try:
-						instance.housing_request
+						instance.housingrequest
 					except:
 						housing = NEUTRAL
+						self.housing_form = None
 					else:
 						housing = REQUESTED
+						self.housing_form = HousingRequestForm(instance, *args, **kwargs)
 				else:
 					housing = OFFERED
+					self.housing_form = HousingOfferForm(instance, *args, **kwargs)
 			except Registration.DoesNotExist:
 				instance = Registration(**registration_kwargs)
 			else:
@@ -202,6 +204,13 @@ class WorkshopRegistrationForm(forms.ModelForm):
 			self.fields['last_name'] = user._meta.get_field('last_name').formfield(required=True, initial=user.last_name)
 			self.fields['email'] = user._meta.get_field('email').formfield(required=True, initial=user.email)
 	
+	def clean(self):
+		super(WorkshopRegistrationForm, self).clean()
+		if self.housing_form:
+			self.housing_form.full_clean()
+		self._update_errors(self.housing_form.errors)
+		return self.cleaned_data
+	
 	def save(self, commit=True):
 		cleaned_data = self.cleaned_data
 		
@@ -222,6 +231,10 @@ class WorkshopRegistrationForm(forms.ModelForm):
 			instance.key = instance.make_key()
 		if 'housing' in cleaned_data and 'housing' in self.changed_data:
 			housing = cleaned_data['housing']
+			
+			if housing in [REQUESTED, OFFERED] and instance.pk is None:
+				instance.save()
+			
 			if housing != REQUESTED:
 				try:
 					instance.housing_request
@@ -229,6 +242,14 @@ class WorkshopRegistrationForm(forms.ModelForm):
 					pass
 				else:
 					instance.housing_request.delete()
+			else:
+				default_kwargs = {
+					'registration': instance,
+					'nonsmoking': False,
+					'no_cats': False,
+					'no_dogs': False,
+				}
+				HousingRequest.objects.create(**default_kwargs)
 			if housing != OFFERED:
 				try:
 					instance.housing_offer
@@ -236,6 +257,16 @@ class WorkshopRegistrationForm(forms.ModelForm):
 					pass
 				else:
 					instance.housing_offer.delete()
+			else:
+				default_kwargs = {
+					'registration': instance,
+					'smoking': False,
+					'cats': False,
+					'dogs': False,
+				}
+				HousingOffer.objects.create(**default_kwargs)
+		elif self.housing_form:
+			self.housing_form.save()
 		if commit:
 			instance.save()
 		return instance
