@@ -1,16 +1,76 @@
 from django import forms
 from django.contrib import messages
-from django.core.exceptions import ValidationError
-from django.forms import ModelForm
-from stepping_out.contrib.workshops.models import Workshop, Registration, WorkshopTrack
-from stepping_out.housing import HOUSING_CHOICES
-from stepping_out.housing.forms import OfferedHousingForm, RequestedHousingForm
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from stepping_out.contrib.workshops.models import Workshop, Registration, WorkshopTrack, HousingOffer, HousingRequest
 from stepping_out.pricing.forms import PricePackageFormSet
 from stepping_out.pricing.models import PricePackage
 import datetime
 
 
-class CreateWorkshopForm(ModelForm):
+# Housing status things.
+NEUTRAL = '0'
+REQUESTED = '1'
+OFFERED = '2'
+HOUSING_CHOICES = (
+	(NEUTRAL, "I do not need housing and I can't offer housing"),
+	(REQUESTED, "I need housing"),
+	(OFFERED, "I can offer housing"),
+)
+
+
+class HousingPhoneNumberForm(forms.ModelForm):
+	def __init__(self, registration, *args, **kwargs):
+		self.registration = registration
+		
+		if registration.user:
+			pn_field = User._meta.get_field('phone_number').formfield()
+			phone_number = user.phone_number
+		else:
+			pn_field = Registration._meta.get_field('phone_number').formfield()
+			phone_number = registration.phone_number
+		self.fields['phone_number'] = pn_field
+		initial = {
+			'phone_number': phone_number
+		}
+		initial.update(kwargs.get('initial', {}))
+		kwargs['initial'] = initial
+		
+		try:
+			instance = self._meta.model._default_manager.get(registration=registration, coordinator=self.coordinator)
+		except ObjectDoesNotExist:
+			instance = self._meta.model(registration=registration, coordinator=self.coordinator)
+		kwargs['instance'] = instance
+		super(HousingPhoneNumber, self).__init__(*args, **kwargs)
+	
+	def save(self, commit=True):
+		if 'phone_number' in self.changed_data:
+			if self.registration.user:
+				self.registration.user.phone_number = self.cleaned_data['phone_number']
+				self.registration.user.save()
+			else:
+				self.registration.phone_number = self.cleaned_data['phone_number']
+				self.registration.save()
+		instance = super(HousingPhoneNumberForm, self).save(commit=False)
+		if commit:
+			instance.save()
+		return instance
+
+
+class HousingOfferForm(HousingPhoneNumberForm):
+	class Meta:
+		model = HousingOffer
+		exclude = ['coordinator', 'registration']
+
+
+class HousingRequestForm(HousingPhoneNumberForm):
+	class Meta:
+		model = HousingRequest
+		exclude = ['coordinator', 'registration', 'housed_with']
+
+
+class CreateWorkshopForm(forms.ModelForm):
 	def save(self, *args, **kwargs):
 		instance = Workshop.objects.create_basic(name=self.cleaned_data['name'], tagline=self.cleaned_data['tagline'])
 		instance.is_active = True
@@ -24,7 +84,7 @@ class CreateWorkshopForm(ModelForm):
 WorkshopTrackInlineFormSet = forms.models.inlineformset_factory(Workshop, WorkshopTrack, extra=1)
 
 
-class EditWorkshopForm(ModelForm):
+class EditWorkshopForm(forms.ModelForm):
 	inlines = [WorkshopTrackInlineFormSet, PricePackageFormSet]
 	
 	def __init__(self, *args, **kwargs):
@@ -70,7 +130,7 @@ def is_checked(value):
 	raise ValidationError("This box must be checked.")
 
 
-class WorkshopRegistrationForm(ModelForm):
+class WorkshopRegistrationForm(forms.ModelForm):
 	person_type = forms.CharField(max_length=15, widget=forms.RadioSelect())
 	housing = forms.CharField(max_length=1, widget=forms.RadioSelect(choices=HOUSING_CHOICES))
 	waiver = forms.BooleanField(validators=[is_checked])
@@ -83,23 +143,36 @@ class WorkshopRegistrationForm(ModelForm):
 			instance = Registration(workshop=workshop)
 		else:
 			registration_kwargs = {'workshop': workshop}
-			if user:
+			if user and not user.is_anonymous():
 				registration_kwargs.update({'user': user})
 			else:
 				registration_kwargs.update({'key': key})
 			
-			#propogate a DoesNotExist.
-			instance = Registration.objects.get(**registration_kwargs)
-			
-			initial = {
-				'price_option': instance.price.option.pk,
-				'person_type': instance.price.person_type,
-				# If they're registered, presumably they agreed to the waiver.
-				'waiver': True,
-				'housing': workshop.housing.get_housing_status(user)
-			}
-			initial.update(kwargs.get('initial', {}))
-			kwargs['initial'] = initial
+			try:
+				instance = Registration.objects.get(**registration_kwargs)
+				try:
+					instance.housing_offer
+				except:
+					try:
+						instance.housing_request
+					except:
+						housing = NEUTRAL
+					else:
+						housing = REQUESTED
+				else:
+					housing = OFFERED
+			except Registration.DoesNotExist:
+				instance = Registration(**registration_kwargs)
+			else:
+				initial = {
+					'price_option': instance.price.option.pk,
+					'person_type': instance.price.person_type,
+					# If they're registered, presumably they agreed to the waiver.
+					'waiver': True,
+					'housing': housing
+				}
+				initial.update(kwargs.get('initial', {}))
+				kwargs['initial'] = initial
 		
 		tracks = workshop.tracks.all()
 		if len(tracks) == 1:
@@ -121,25 +194,48 @@ class WorkshopRegistrationForm(ModelForm):
 		self.fields['track'] = forms.models.ModelChoiceField(workshop.tracks.all(), widget=forms.RadioSelect, empty_label=None)
 		
 		if user is None:
-			self.fields['first_name'] = instance._meta.get_field('first_name').formfield(required=True)
-			self.fields['last_name'] = instance._meta.get_field('last_name').formfield(required=True)
+			self.fields['first_name'] = instance._meta.get_field('first_name').formfield(required=True, initial=instance.first_name)
+			self.fields['last_name'] = instance._meta.get_field('last_name').formfield(required=True, initial=instance.last_name)
+			self.fields['email'] = instance._meta.get_field('email').formfield(required=True, initial=instance.email)
 		else:
-			self.fields['first_name'] = user._meta.get_field('first_name').formfield()
-			self.fields['last_name'] = user._meta.get_field('last_name').formfield()
+			self.fields['first_name'] = user._meta.get_field('first_name').formfield(required=True, initial=user.first_name)
+			self.fields['last_name'] = user._meta.get_field('last_name').formfield(required=True, initial=user.last_name)
+			self.fields['email'] = user._meta.get_field('email').formfield(required=True, initial=user.email)
 	
 	def save(self, commit=True):
-		self.instance.price = self.cleaned_data['price_option'].prices.get(person_type=self.cleaned_data['person_type'])
+		cleaned_data = self.cleaned_data
+		
+		self.instance.price = cleaned_data['price_option'].prices.get(person_type=cleaned_data['person_type'])
 		instance = super(WorkshopRegistrationForm, self).save(commit=False)
 		
-		if 'first_name' in self.cleaned_data and 'last_name' in self.cleaned_data:
-			if instance.user is None:
-				instance.first_name, instance.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
-			else:
-				user = self.instance.user
-				user.first_name, user.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
+		contact_fields = set(['first_name', 'last_name', 'email'])
+		if contact_fields & set(cleaned_data.keys()) and contact_fields & set(self.changed_data):
+			for field_name in contact_fields & set(cleaned_data.keys()):
+				if instance.user is None:
+					setattr(instance, field_name, cleaned_data[field_name])
+				else:
+					# TODO: Special-case user email setting to use the UserEmail stuff.
+					setattr(instance.user, field_name, cleaned_data[field_name])
+			if instance.user:
 				user.save()
 		if self.user is None and self.key is None:
 			instance.key = instance.make_key()
+		if 'housing' in cleaned_data and 'housing' in self.changed_data:
+			housing = cleaned_data['housing']
+			if housing != REQUESTED:
+				try:
+					instance.housing_request
+				except:
+					pass
+				else:
+					instance.housing_request.delete()
+			if housing != OFFERED:
+				try:
+					instance.housing_offer
+				except:
+					pass
+				else:
+					instance.housing_offer.delete()
 		if commit:
 			instance.save()
 		return instance

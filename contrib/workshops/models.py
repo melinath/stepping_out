@@ -2,10 +2,11 @@ from datetime import datetime, date, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.localflavor.us.models import PhoneNumberField
 from django.core.validators import MinLengthValidator, RegexValidator
 from stepping_out.pricing.models import PricePackage, Price, Payment
 from stepping_out.pricing.people import registry
-from stepping_out.housing.models import HousingCoordinator
 import random
 import string
 
@@ -65,16 +66,8 @@ class Workshop(models.Model):
 	is_active = models.BooleanField()
 	
 	price_packages = generic.GenericRelation(PricePackage, content_type_field='event_content_type', object_id_field='event_object_id')
-	_housing = generic.GenericRelation(HousingCoordinator, content_type_field='event_content_type', object_id_field='event_object_id')
 	
 	objects = WorkshopManager()
-	
-	@property
-	def housing(self):
-		# going for a "GenericOneToOne" feel here.
-		if self._housing.all():
-			return self._housing.all()[0]
-		return None
 	
 	def __unicode__(self):
 		return self.name
@@ -105,6 +98,7 @@ class Registration(models.Model):
 	)
 	workshop = models.ForeignKey(Workshop)
 	track = models.ForeignKey(WorkshopTrack)
+	
 	user = models.ForeignKey(User, blank=True, null=True)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
@@ -113,6 +107,8 @@ class Registration(models.Model):
 	key = models.CharField(max_length=REGISTRATION_KEY_LENGTH, validators=[MinLengthValidator(REGISTRATION_KEY_LENGTH), RegexValidator(r"[%s]" % REGISTRATION_KEY_CHARACTERS)])
 	first_name = models.CharField(max_length=30, blank=True)
 	last_name = models.CharField(max_length=30, blank=True)
+	email = models.EmailField(blank=True)
+	phone_number = PhoneNumberField(blank=True)
 	
 	@property
 	def payments(self):
@@ -143,3 +139,36 @@ class WorkshopEvent(models.Model):
 		if self.track and self.track.workshop != self.workshop:
 			self.workshop = self.track.workshop
 		super(WorkshopEvent, self).save(*args, **kwargs)
+
+
+class HousingOffer(models.Model):
+	registration = models.ForeignKey(Registration)
+	address = models.TextField()
+	smoking = models.BooleanField(verbose_name='Smoking or recent smoking')
+	cats = models.BooleanField()
+	dogs = models.BooleanField()
+	num_ideal = models.PositiveIntegerField(verbose_name='Ideal number of guests')
+	num_max = models.PositiveIntegerField(verbose_name='Maximum number of guests')
+	comments = models.TextField(verbose_name='Additional comments', blank=True)
+	
+	class Meta:
+		verbose_name = "Housing Offer"
+		verbose_name_plural = "Offered Housing"
+
+
+class HousingRequest(models.Model):
+	registration = models.OneToOneField(Registration)
+	PREFERENCE_CHOICES = (
+		(0, "I don't care"),
+		(1, "Preferred"),
+		(2, "A must!"),
+	)
+	nonsmoking = models.IntegerField(max_length=1, choices=PREFERENCE_CHOICES)
+	no_cats = models.IntegerField(max_length=1, choices=PREFERENCE_CHOICES)
+	no_dogs =  models.IntegerField(max_length=1, choices=PREFERENCE_CHOICES)
+	housed_with = models.ForeignKey(HousingOffer, blank=True, null=True, related_name='housed')
+	comments = models.TextField(verbose_name='Additional comments', blank=True)
+	
+	class Meta:
+		verbose_name = "Housing Request"
+		verbose_name_plural = "Requested Housing"
