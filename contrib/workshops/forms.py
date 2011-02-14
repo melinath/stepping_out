@@ -2,8 +2,7 @@ from django import forms
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.forms import ModelForm
-from stepping_out.contrib.workshops.models import Workshop, WorkshopUserMetaInfo, WorkshopTrack
-from stepping_out.contrib.workshops.exceptions import RegistrationClosed
+from stepping_out.contrib.workshops.models import Workshop, Registration, WorkshopTrack
 from stepping_out.housing import HOUSING_CHOICES
 from stepping_out.housing.forms import OfferedHousingForm, RequestedHousingForm
 from stepping_out.pricing.forms import PricePackageFormSet
@@ -76,16 +75,22 @@ class WorkshopRegistrationForm(ModelForm):
 	housing = forms.CharField(max_length=1, widget=forms.RadioSelect(choices=HOUSING_CHOICES))
 	waiver = forms.BooleanField(validators=[is_checked])
 	
-	def __init__(self, user, workshop, *args, **kwargs):
+	def __init__(self, workshop, user=None, key=None, *args, **kwargs):
 		self.user = user
+		self.key = key
 		self.workshop = workshop
-		if not workshop.registration_is_open:
-			raise RegistrationClosed("Registration for this workshop is closed.")
-		try:
-			instance = WorkshopUserMetaInfo.objects.get(user=user, workshop=workshop)
-		except WorkshopUserMetaInfo.DoesNotExist:
-			instance = WorkshopUserMetaInfo(user=user, workshop=workshop)
+		if user is None and key is None:
+			instance = Registration(workshop=workshop)
 		else:
+			registration_kwargs = {'workshop': workshop}
+			if user:
+				registration_kwargs.update({'user': user})
+			else:
+				registration_kwargs.update({'key': key})
+			
+			#propogate a DoesNotExist.
+			instance = Registration.objects.get(**registration_kwargs)
+			
 			initial = {
 				'price_option': instance.price.option.pk,
 				'person_type': instance.price.person_type,
@@ -96,40 +101,49 @@ class WorkshopRegistrationForm(ModelForm):
 			initial.update(kwargs.get('initial', {}))
 			kwargs['initial'] = initial
 		
-		if workshop.tracks.count() == 1:
+		tracks = workshop.tracks.all()
+		if len(tracks) == 1:
 			initial = kwargs.get('initial', {})
-			initial['track'] = workshop.tracks.all()[0].id
+			initial['track'] = tracks[0].id
 			kwargs['initial'] = initial
 		
 		kwargs['instance'] = instance
 		
 		super(WorkshopRegistrationForm, self).__init__(*args, **kwargs)
 		
-		try:
-			price_package = workshop.price_packages.filter(available_until__gte=datetime.date.today())[0]
-		except IndexError:
-			# If there aren't any price packages available, they can't register.
-			# Treat as closed registration.
-			raise RegistrationClosed("No price packages are available for this workshop.")
+		# Don't check whether there are any available: this form should only
+		# be instantiated if registration is possible.
+		price_package = workshop.price_packages.filter(available_until__gte=datetime.date.today())[0]
 		
 		self.fields['dancing_as'].widget = forms.RadioSelect(choices=self._meta.model._meta.get_field('dancing_as').get_choices(include_blank=False))
 		self.fields['person_type'].widget.choices = [choice for choice in price_package._meta.get_field('person_types').choices if choice[0] in price_package.person_types]
 		self.fields['price_option'] = forms.models.ModelChoiceField(empty_label=None, queryset=price_package.options.all(), widget=forms.RadioSelect())
 		self.fields['track'] = forms.models.ModelChoiceField(workshop.tracks.all(), widget=forms.RadioSelect, empty_label=None)
 		
-		if not user.first_name and not user.last_name:
+		if user is None:
+			self.fields['first_name'] = instance._meta.get_field('first_name').formfield(required=True)
+			self.fields['last_name'] = instance._meta.get_field('last_name').formfield(required=True)
+		else:
 			self.fields['first_name'] = user._meta.get_field('first_name').formfield()
 			self.fields['last_name'] = user._meta.get_field('last_name').formfield()
 	
-	def save(self, *args, **kwargs):
+	def save(self, commit=True):
 		self.instance.price = self.cleaned_data['price_option'].prices.get(person_type=self.cleaned_data['person_type'])
-		super(WorkshopRegistrationForm, self).save(*args, **kwargs)
+		instance = super(WorkshopRegistrationForm, self).save(commit=False)
 		
 		if 'first_name' in self.cleaned_data and 'last_name' in self.cleaned_data:
-			user = self.instance.user
-			user.first_name, user.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
-			user.save()
+			if instance.user is None:
+				instance.first_name, instance.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
+			else:
+				user = self.instance.user
+				user.first_name, user.last_name = self.cleaned_data['first_name'], self.cleaned_data['last_name']
+				user.save()
+		if self.user is None and self.key is None:
+			instance.key = instance.make_key()
+		if commit:
+			instance.save()
+		return instance
 	
 	class Meta:
-		model = WorkshopUserMetaInfo
+		model = Registration
 		fields = ['track', 'dancing_as']

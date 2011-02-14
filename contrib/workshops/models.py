@@ -105,17 +105,20 @@ class Registration(models.Model):
 	)
 	workshop = models.ForeignKey(Workshop)
 	track = models.ForeignKey(WorkshopTrack)
-	user = models.ForeignKey(User)
+	user = models.ForeignKey(User, blank=True, null=True)
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
 	price = models.ForeignKey(Price)
+	
 	key = models.CharField(max_length=REGISTRATION_KEY_LENGTH, validators=[MinLengthValidator(REGISTRATION_KEY_LENGTH), RegexValidator(r"[%s]" % REGISTRATION_KEY_CHARACTERS)])
+	first_name = models.CharField(max_length=30, blank=True)
+	last_name = models.CharField(max_length=30, blank=True)
 	
 	@property
 	def payments(self):
 		return Payment.objects.filter(user=self.user, payment_for=self.workshop)
 	
-	def make_registration_key(self):
+	def make_key(self):
 		while True:
 			new_key = ''.join(random.sample(REGISTRATION_KEY_CHARACTERS, REGISTRATION_KEY_LENGTH))
 			try:
@@ -124,6 +127,7 @@ class Registration(models.Model):
 				return new_key
 	
 	class Meta:
+		# If user is None, will that trigger unique checks?
 		unique_together = (('workshop', 'user'), ('workshop', 'key'))
 
 
