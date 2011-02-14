@@ -1,6 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.db import models
+from django.utils.text import capfirst
 from django.utils.translation import ugettext_lazy as _
 
 
