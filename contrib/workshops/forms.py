@@ -138,6 +138,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
 		self.user = user
 		self.key = key
 		self.workshop = workshop
+		self.housing_form = None
 		if user is None and key is None:
 			instance = Registration(workshop=workshop)
 		else:
@@ -156,7 +157,6 @@ class WorkshopRegistrationForm(forms.ModelForm):
 						instance.housingrequest
 					except:
 						housing = NEUTRAL
-						self.housing_form = None
 					else:
 						housing = REQUESTED
 						self.housing_form = HousingRequestForm(instance, *args, **kwargs)
@@ -208,7 +208,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
 		super(WorkshopRegistrationForm, self).clean()
 		if self.housing_form:
 			self.housing_form.full_clean()
-		self._update_errors(self.housing_form.errors)
+			self._update_errors(self.housing_form.errors)
 		return self.cleaned_data
 	
 	def save(self, commit=True):
@@ -226,7 +226,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
 					# TODO: Special-case user email setting to use the UserEmail stuff.
 					setattr(instance.user, field_name, cleaned_data[field_name])
 			if instance.user:
-				user.save()
+				instance.user.save()
 		if self.user is None and self.key is None:
 			instance.key = instance.make_key()
 		if 'housing' in cleaned_data and 'housing' in self.changed_data:
