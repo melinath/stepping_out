@@ -2,9 +2,16 @@ from datetime import datetime, date, timedelta
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes import generic
+from django.core.validators import MinLengthValidator, RegexValidator
 from stepping_out.pricing.models import PricePackage, Price, Payment
 from stepping_out.pricing.people import registry
 from stepping_out.housing.models import HousingCoordinator
+import random
+import string
+
+
+REGISTRATION_KEY_CHARACTERS = string.ascii_letters + string.digits
+REGISTRATION_KEY_LENGTH = 6
 
 
 class WorkshopManager(models.Manager):
@@ -86,6 +93,9 @@ class WorkshopTrack(models.Model):
 	
 	def __unicode__(self):
 		return self.name
+	
+	class Meta:
+		unique_together = ('workshop', 'name')
 
 
 class Registration(models.Model):
@@ -99,13 +109,22 @@ class Registration(models.Model):
 	dancing_as = models.CharField(max_length=1, choices=DANCING_AS_CHOICES)
 	registered_at = models.DateTimeField(default=datetime.now)
 	price = models.ForeignKey(Price)
+	key = models.CharField(max_length=REGISTRATION_KEY_LENGTH, validators=[MinLengthValidator(REGISTRATION_KEY_LENGTH), RegexValidator(r"[%s]" % REGISTRATION_KEY_CHARACTERS)])
 	
 	@property
 	def payments(self):
 		return Payment.objects.filter(user=self.user, payment_for=self.workshop)
 	
+	def make_registration_key(self):
+		while True:
+			new_key = ''.join(random.sample(REGISTRATION_KEY_CHARACTERS, REGISTRATION_KEY_LENGTH))
+			try:
+				Registration.objects.exclude(pk=self.pk).get(key=new_key)
+			except Registration.DoesNotExist:
+				return new_key
+	
 	class Meta:
-		unique_together = ('workshop', 'user')
+		unique_together = (('workshop', 'user'), ('workshop', 'key'))
 
 
 class WorkshopEvent(models.Model):
