@@ -54,7 +54,7 @@ class Workshop(models.Model):
 	online_registration_end = models.DateField(verbose_name='online registration closes', help_text='Closes at 23:59:59')
 	workshop_start = models.DateField(verbose_name='workshop start date')
 	workshop_end = models.DateField(verbose_name='workshop end date')
-	registered_users = models.ManyToManyField(User, through='WorkshopUserMetaInfo')
+	registered_users = models.ManyToManyField(User, through='Registration')
 	is_active = models.BooleanField()
 	
 	price_packages = generic.GenericRelation(PricePackage, content_type_field='event_content_type', object_id_field='event_object_id')
@@ -88,7 +88,7 @@ class WorkshopTrack(models.Model):
 		return self.name
 
 
-class WorkshopUserMetaInfo(models.Model):
+class Registration(models.Model):
 	DANCING_AS_CHOICES = (
 		('l', 'Lead'),
 		('f', 'Follow')

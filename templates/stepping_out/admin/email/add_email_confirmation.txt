@@ -1,6 +1,0 @@
-Hi! This email has been attached to an account at {{ domain }}. You can confirm
-this with the following link:
-
-{{ protocol }}://{{ domain }}{{ url }}
-
-If you feel you have received this email in error, please contact {{ admin_email }}.
