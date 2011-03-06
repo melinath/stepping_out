@@ -40,7 +40,7 @@ class PriceOptionAdmin(admin.ModelAdmin):
 
 
 class PaymentAdmin(admin.ModelAdmin):
-	pass
+	list_display = ('__unicode__', 'method', 'paid')
 
 
 admin.site.register(PricePackage, PricePackageAdmin)

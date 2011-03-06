@@ -26,6 +26,7 @@ class HousingOfferInline(admin.StackedInline):
 
 class RegistrationAdmin(admin.ModelAdmin):
 	inlines = [HousingOfferInline, HousingRequestInline]
+	list_display_fields = ('__unicode__',)
 
 
 class WorkshopEventInline(admin.StackedInline):

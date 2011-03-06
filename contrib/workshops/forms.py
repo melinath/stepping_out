@@ -227,7 +227,7 @@ class WorkshopRegistrationForm(forms.ModelForm):
 					setattr(instance.user, field_name, cleaned_data[field_name])
 			if instance.user:
 				instance.user.save()
-		if self.user is None and self.key is None:
+		if self.key is None:
 			instance.key = instance.make_key()
 		if 'housing' in cleaned_data and 'housing' in self.changed_data:
 			housing = cleaned_data['housing']

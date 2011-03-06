@@ -113,5 +113,8 @@ class Payment(models.Model):
 	if 'paypal' in settings.INSTALLED_APPS:
 		ipn = models.OneToOneField(PayPalIPN, blank=True, null=True)
 	
+	def __unicode__(self):
+		return u"%s - %s" % (self.paid, self.get_method_display())
+	
 	class Meta:
 		app_label = 'stepping_out'
