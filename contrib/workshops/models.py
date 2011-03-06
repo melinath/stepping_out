@@ -111,8 +111,8 @@ class Registration(models.Model):
 	phone_number = PhoneNumberField(blank=True)
 	
 	@property
-	def payments(self):
-		return Payment.objects.filter(user=self.user, payment_for=self.workshop)
+	def total_paid(self):
+		return self.payments.aggregate(models.Sum('paid'))['paid__sum'] or 0
 	
 	def make_key(self):
 		while True:
@@ -121,6 +121,18 @@ class Registration(models.Model):
 				Registration.objects.exclude(pk=self.pk).get(key=new_key)
 			except Registration.DoesNotExist:
 				return new_key
+	
+	def get_full_name(self):
+		if self.user and self.user.get_full_name():
+			return self.user.get_full_name()
+		elif self.first_name and self.last_name:
+			return " ".join([self.first_name, self.last_name])
+		elif self.user:
+			return self.user.username
+		return self.key
+	
+	def __unicode__(self):
+		return u"%s - %s" % (self.get_full_name(), self.workshop)
 	
 	class Meta:
 		# If user is None, will that trigger unique checks?

@@ -7,6 +7,7 @@ from stepping_out.pricing import people
 from stepping_out.pricing.fields import SlugMultipleChoiceField
 import datetime
 
+
 if 'paypal' in settings.INSTALLED_APPS:
 	from paypal.standard.ipn.models import PayPalIPN
 
@@ -84,24 +85,27 @@ class Price(models.Model):
 	def get_event(self):
 		return self.option.package.event
 	
+	def __unicode__(self):
+		return u"%s - %s - %s" % (self.price, self.get_person_type(), self.option)
+	
 	class Meta:
 		app_label = 'stepping_out'
 		unique_together = ['option', 'person_type']
 
 
 class Payment(models.Model):
+	CASH = 'cash'
+	CHECK = 'check'
+	ONLINE = 'online'
 	PAYMENT_CHOICES = (
-		('cash', 'Cash'),
-		('check', 'Check'),
-		('online', 'Online')
+		(CASH, 'Cash'),
+		(CHECK, 'Check'),
+		(ONLINE, 'Online')
 	)
-	payment_for_id = models.PositiveIntegerField()
-	payment_for_ct = models.ForeignKey(ContentType)
-	payment_for = generic.GenericForeignKey('payment_for_ct', 'payment_for_id')
-	user = models.ForeignKey(User)
+	registration = models.ForeignKey('workshops.Registration', related_name="payments")
 	paid = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Amount paid")
-	payment_method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
-	payment_made = models.DateTimeField(default=datetime.datetime.now)
+	method = models.CharField(max_length=10, choices=PAYMENT_CHOICES)
+	timestamp = models.DateTimeField(default=datetime.datetime.now)
 	
 	#TODO: Find a better way to segment this out - perhaps by making a model
 	# that relates an ipn to a payment? Or just add a "payment" field to the IPN
