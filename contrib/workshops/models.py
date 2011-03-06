@@ -137,7 +137,7 @@ class Registration(models.Model):
 	class Meta:
 		# If user is None, will that trigger unique checks?
 		unique_together = (('workshop', 'user'), ('workshop', 'key'))
-		ordering = ('last_name', 'first_name')
+		ordering = ('-registered_at',)
 
 
 class WorkshopEvent(models.Model):
